@@ -8,8 +8,8 @@ from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse
-from rag_engine import query_notes, summarize_notes
+from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse
+from rag_engine import query_notes, summarize_notes, generate_timetable
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv(override=True)
@@ -109,3 +109,25 @@ async def summarize_endpoint(
         return SummarizeResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+
+
+@app.post("/generate-timetable", response_model=TimetableResponse)
+async def timetable_endpoint(request: TimetableRequest):
+    """
+    Generates a day-by-day AI study timetable from today to the exam date.
+    """
+    if not request.exam_name.strip():
+        raise HTTPException(status_code=400, detail="Exam name cannot be empty.")
+    if not request.exam_date.strip():
+        raise HTTPException(status_code=400, detail="Exam date cannot be empty.")
+
+    try:
+        result = generate_timetable(
+            exam_name=request.exam_name,
+            exam_date=request.exam_date,
+            class_level=request.class_level or "11",
+            daily_hours=request.daily_hours or 3,
+        )
+        return TimetableResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Timetable generation failed: {str(e)}")

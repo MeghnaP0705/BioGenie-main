@@ -2,7 +2,7 @@
 models.py – Pydantic request/response models (no upload model)
 """
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Any
 
 
 class AskRequest(BaseModel):
@@ -24,3 +24,15 @@ class HealthResponse(BaseModel):
 class SummarizeResponse(BaseModel):
     summary: str
     sources: list[str]
+
+
+class TimetableRequest(BaseModel):
+    exam_name: str
+    exam_date: str  # ISO format: YYYY-MM-DD
+    class_level: Optional[str] = "general"
+    weak_topics: Optional[List[str]] = []
+    daily_hours: Optional[int] = 3
+
+
+class TimetableResponse(BaseModel):
+    plan: List[Any]  # List of {date, topic, activity_type, description}

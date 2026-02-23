@@ -5,6 +5,7 @@ import NotesGenerator from "./components/NotesGenerator"
 import Summarizer from "./components/Summarizer"
 import DoubtSolver from "./components/DoubtSolver"
 import PreviousYearPapers from "./components/PreviousYearPapers"
+import TimetableGenerator from "./components/TimetableGenerator"
 
 function App() {
 
@@ -799,6 +800,14 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
   if (gem === "Previous Year Question Paper") {
     return (
       <PreviousYearPapers
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (gem === "Timetable Generator") {
+    return (
+      <TimetableGenerator
         onBack={onBack}
       />
     )

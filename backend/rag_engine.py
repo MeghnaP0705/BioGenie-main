@@ -199,3 +199,100 @@ Rules:
             "summary": "Error generating summary from AI. Please try again.",
             "sources": []
         }
+
+
+def generate_timetable(exam_name: str, exam_date: str, class_level: str,
+                        daily_hours: int) -> dict:
+    """
+    Generates a day-by-day study timetable based on the actual chapters/topics
+    from the uploaded PDFs stored in the Supabase biotech_rag_chunks table.
+    """
+    import json
+    from datetime import date
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    # ── 1. Fetch distinct chapters for this class from Supabase ─────────────────
+    try:
+        supabase = get_supabase_client()
+        res = (
+            supabase.table("biotech_rag_chunks")
+            .select("chapter, source_pdf")
+            .eq("class_level", class_level)
+            .execute()
+        )
+        rows = res.data or []
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch topics from Supabase: {e}")
+
+    if not rows:
+        raise RuntimeError(
+            f"No textbook content found for Class {class_level} in the knowledge base. "
+            "Please upload and index PDFs for this class first."
+        )
+
+    # Deduplicate chapters preserving order
+    seen = set()
+    chapters = []
+    for row in rows:
+        ch = row.get("chapter", "").strip()
+        if ch and ch not in seen:
+            seen.add(ch)
+            chapters.append(ch)
+
+    # If no chapter metadata, fall back to distinct PDF source names
+    if not chapters:
+        for row in rows:
+            src = row.get("source_pdf", "").strip()
+            if src and src not in seen:
+                seen.add(src)
+                chapters.append(src)
+
+    topics_str = "\n".join(f"- {ch}" for ch in chapters)
+
+    # ── 2. Build prompt with real uploaded topics ────────────────────────────────
+    today = date.today().isoformat()
+
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.3,
+        api_key=api_key
+    )
+
+    prompt = f"""You are an expert academic planner for Class {class_level} students.
+
+Generate a complete day-by-day study timetable from TODAY ({today}) to the EXAM DATE ({exam_date}).
+Exam: {exam_name} | Class: {class_level} | Daily study hours: {daily_hours}
+
+The following are the ACTUAL CHAPTERS/TOPICS from the uploaded textbooks for Class {class_level}.
+Use ONLY these as your study topics (use exact names):
+{topics_str}
+
+RULES (follow strictly):
+1. Assign one chapter/topic per study day. Use the EXACT chapter name from the list above as the "topic" field.
+2. Cover ALL chapters at least once before the last 3 days.
+3. If multiple chapters relate (e.g. same unit), you may group them in a single day's description, but keep the "topic" field as the primary chapter name.
+4. Last 3 days before exam: 1 day for "Full Syllabus Revision" (revision type), 1 day for "Mock Test – Full Paper" (mock_test type), 1 day for "Final Revision & Weak Areas" (revision type).
+5. Every Sunday: assign "Rest & Light Review" (rest type).
+6. If the date range is short (less than the number of chapters), combine 2-3 related chapters per day in the description, but list the main one in "topic".
+7. Each entry must include a "description" — one specific sentence describing what to study (e.g. "Read chapter on PCR, make flow diagram of steps, solve 5 past-paper questions").
+8. Output ONLY a raw valid JSON array. No markdown fences, no explanation.
+
+Strict output format:
+[{{"date": "YYYY-MM-DD", "topic": "<exact chapter name or revision/mock label>", "activity_type": "study|revision|mock_test|rest", "description": "<one actionable sentence>"}}]"""
+
+    # ── 3. Call LLM and parse JSON ───────────────────────────────────────────────
+    try:
+        response = llm.invoke(prompt)
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        plan = json.loads(raw)
+        return {"plan": plan, "chapters_used": chapters}
+    except json.JSONDecodeError:
+        raise RuntimeError("LLM returned invalid JSON for timetable. Please try again.")
+    except Exception as e:
+        raise RuntimeError(f"Timetable generation failed: {e}")
+
