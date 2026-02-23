@@ -155,3 +155,47 @@ def query_notes(question: str, class_level: str, top_k: int = 7) -> dict:
         "injection_detected": False,
     }
 
+
+def summarize_notes(text: str) -> dict:
+    """
+    Summarizes user-provided text or PDF content using Groq LLM.
+    No Supabase verification — just clean, structured Markdown output.
+    """
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.0,
+        api_key=api_key
+    )
+
+    system_prompt = """You are an expert academic summarizer.
+Your task is to read the provided text and produce a clear, well-structured Markdown summary.
+
+Rules:
+1. Use ### headers for main sections, **bold** for key terms, and bullet points (-) for details.
+2. Keep the summary concise but comprehensive — capture all important concepts.
+3. Do NOT add facts that are not in the original text.
+4. Do NOT refuse — always produce a summary.
+5. Use an academic, exam-oriented tone.
+"""
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=f"Summarize the following content:\n\n{text}"),
+    ]
+
+    try:
+        response = llm.invoke(messages)
+        return {
+            "summary": response.content.strip(),
+            "sources": []
+        }
+    except Exception as e:
+        print(f"Groq API error during summarization: {e}")
+        return {
+            "summary": "Error generating summary from AI. Please try again.",
+            "sources": []
+        }

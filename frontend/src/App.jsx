@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "./supabase"
 import BiotechSimulations from "./components/BiotechSimulations"
 import NotesGenerator from "./components/NotesGenerator"
+import Summarizer from "./components/Summarizer"
+import DoubtSolver from "./components/DoubtSolver"
 
 function App() {
 
@@ -773,6 +775,22 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
       <NotesGenerator
         onBack={onBack}
         role={role}
+      />
+    )
+  }
+
+  if (gem === "Summarizer") {
+    return (
+      <Summarizer
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (gem === "Doubt Solver") {
+    return (
+      <DoubtSolver
+        onBack={onBack}
       />
     )
   }

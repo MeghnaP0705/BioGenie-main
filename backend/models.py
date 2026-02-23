@@ -19,3 +19,8 @@ class AskResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     index_ready: bool
+
+
+class SummarizeResponse(BaseModel):
+    summary: str
+    sources: list[str]

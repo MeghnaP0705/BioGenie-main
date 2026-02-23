@@ -3,12 +3,13 @@ main.py – FastAPI entry point (Backend-Controlled RAG – No user uploads)
 """
 
 import os
-from fastapi import FastAPI, HTTPException
+import fitz
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from models import AskRequest, AskResponse, HealthResponse
-from rag_engine import query_notes
+from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse
+from rag_engine import query_notes, summarize_notes
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv(override=True)
@@ -70,3 +71,41 @@ async def ask_question(request: AskRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
+
+
+@app.post("/summarize", response_model=SummarizeResponse)
+async def summarize_endpoint(
+    text: str = Form(""), 
+    file: UploadFile = File(None)
+):
+    """
+    Summarizer endpoint: Accepts raw pasted text and/or a PDF file.
+    Extracts text, strictly verifies it against textbook context, and summarizes it.
+    """
+    combined_text = text.strip()
+
+    if file:
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+        
+        try:
+            pdf_bytes = await file.read()
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            extracted = []
+            for page in doc:
+                page_text = page.get_text("text")
+                if page_text.strip():
+                    extracted.append(page_text)
+            doc.close()
+            combined_text += "\n" + "\n".join(extracted)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+
+    if not combined_text.strip():
+        raise HTTPException(status_code=400, detail="No text or valid PDF provided to summarize.")
+
+    try:
+        result = summarize_notes(combined_text)
+        return SummarizeResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
