@@ -4,6 +4,7 @@ import BiotechSimulations from "./components/BiotechSimulations"
 import NotesGenerator from "./components/NotesGenerator"
 import Summarizer from "./components/Summarizer"
 import DoubtSolver from "./components/DoubtSolver"
+import PreviousYearPapers from "./components/PreviousYearPapers"
 
 function App() {
 
@@ -790,6 +791,14 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
   if (gem === "Doubt Solver") {
     return (
       <DoubtSolver
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (gem === "Previous Year Question Paper") {
+    return (
+      <PreviousYearPapers
         onBack={onBack}
       />
     )
