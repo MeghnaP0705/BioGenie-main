@@ -15,6 +15,7 @@ function App() {
   const [page, setPage] = useState("landing")
   const [role, setRole] = useState(null)
   const [userName, setUserName] = useState("")
+  const [userId, setUserId] = useState(null)
   const [selectedGem, setSelectedGem] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
@@ -30,6 +31,7 @@ function App() {
       if (data?.session?.user) {
         setIsAuthenticated(true)
         setUserName(data.session.user.user_metadata?.full_name || "")
+        setUserId(data.session.user.id)
         setPage("roles")
       }
     }
@@ -40,6 +42,7 @@ function App() {
     await supabase.auth.signOut()
     setIsAuthenticated(false)
     setUserName("")
+    setUserId(null)
     setRole(null)
     setSelectedGem(null)
     setPage("landing")
@@ -57,6 +60,7 @@ function App() {
           const { data } = await supabase.auth.getUser()
           setIsAuthenticated(true)
           setUserName(data.user.user_metadata?.full_name || "")
+          setUserId(data.user.id)
           setPage("roles")
         }}
       />
@@ -100,6 +104,7 @@ function App() {
         gem={selectedGem}
         onBack={() => setPage("dashboard")}
         isAuthenticated={isAuthenticated}
+        userId={userId}
         userName={userName}
         onLogout={handleLogout}
       />
@@ -668,13 +673,13 @@ function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userNa
 /* ═══════════════════════════════════════════════════════════
    GEM SCREEN (Feature Router)
 ═══════════════════════════════════════════════════════════ */
-function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
-  if (gem === "Notes Generator") return <NotesGenerator onBack={onBack} role={role} />
-  if (gem === "Summarizer") return <Summarizer onBack={onBack} />
-  if (gem === "Doubt Solver") return <DoubtSolver onBack={onBack} />
+function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLogout }) {
+  if (gem === "Notes Generator") return <NotesGenerator onBack={onBack} role={role} isAuthenticated={isAuthenticated} userId={userId} />
+  if (gem === "Summarizer") return <Summarizer onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
+  if (gem === "Doubt Solver") return <DoubtSolver onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
   if (gem === "Previous Year Question Paper") return <PreviousYearPapers onBack={onBack} />
   if (gem === "Timetable Generator") return <TimetableGenerator onBack={onBack} />
-  if (gem === "PPT Maker") return <PptMaker onBack={onBack} />
+  if (gem === "PPT Maker") return <PptMaker onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
 
   // Coming Soon
   return (

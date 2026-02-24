@@ -767,3 +767,114 @@ body {
 .prose-dark li::marker {
   color: var(--emerald);
 }
+
+/* ═══════════════════════════════════════════
+   CHAT HISTORY SIDEBAR
+═══════════════════════════════════════════ */
+.chat-sidebar {
+  width: 260px;
+  min-width: 260px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(6, 13, 24, 0.97), rgba(10, 22, 40, 0.95));
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s ease;
+  z-index: 30;
+  overflow: hidden;
+}
+
+.chat-sidebar-collapsed {
+  transform: translateX(-100%);
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Mobile toggle */
+.chat-sidebar-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 16px;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--emerald-dark), var(--emerald));
+  color: var(--bg-deep);
+  font-size: 16px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(52, 211, 153, 0.3);
+  transition: transform 0.2s ease;
+}
+
+.chat-sidebar-toggle:hover {
+  transform: scale(1.08);
+}
+
+/* Session item */
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.session-item:hover {
+  background: rgba(52, 211, 153, 0.08);
+}
+
+.session-item-active {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+/* Sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.2);
+  border-radius: 2px;
+}
+
+/* Layout helper: feature with sidebar */
+.feature-with-sidebar {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── Responsive sidebar ─── */
+@media (max-width: 768px) {
+  .chat-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 50;
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .chat-sidebar-collapsed {
+    transform: translateX(-100%);
+  }
+
+  .chat-sidebar-toggle {
+    display: flex;
+  }
+}
