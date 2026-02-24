@@ -12,6 +12,7 @@ function App() {
   const [page, setPage] = useState("landing")
   const [role, setRole] = useState(null)
   const [userName, setUserName] = useState("")
+  const [userId, setUserId] = useState(null)
   const [selectedGem, setSelectedGem] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
@@ -32,6 +33,7 @@ function App() {
 
       if (data?.session?.user) {
         setIsAuthenticated(true)
+        setUserId(data.session.user.id)
         setUserName(
           data.session.user.user_metadata?.full_name || ""
         )
@@ -46,6 +48,7 @@ function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setIsAuthenticated(false)
+    setUserId(null)
     setUserName("")
     setRole(null)
     setSelectedGem(null)
@@ -65,6 +68,7 @@ function App() {
         onSuccess={async () => {
           const { data } = await supabase.auth.getUser()
           setIsAuthenticated(true)
+          setUserId(data.user.id)
           setUserName(data.user.user_metadata?.full_name || "")
           setPage("roles")
         }}
@@ -127,6 +131,7 @@ function App() {
         onBack={() => setPage("dashboard")}
         isAuthenticated={isAuthenticated}
         userName={userName}
+        userId={userId}
         onLogout={handleLogout}
       />
     )
@@ -770,13 +775,15 @@ function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userNa
 
 /* ---------------- Gem Screen ---------------- */
 
-function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
+function GemScreen({ gem, role, onBack, isAuthenticated, userName, userId, onLogout }) {
 
   if (gem === "Notes Generator") {
     return (
       <NotesGenerator
         onBack={onBack}
         role={role}
+        isAuthenticated={isAuthenticated}
+        userId={userId}
       />
     )
   }
@@ -785,6 +792,8 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
     return (
       <Summarizer
         onBack={onBack}
+        isAuthenticated={isAuthenticated}
+        userId={userId}
       />
     )
   }
@@ -793,6 +802,8 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
     return (
       <DoubtSolver
         onBack={onBack}
+        isAuthenticated={isAuthenticated}
+        userId={userId}
       />
     )
   }
