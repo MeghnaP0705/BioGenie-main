@@ -8,7 +8,7 @@ export default function BiotechSimulations() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
 
-  // Class-wise experiments (NO textbooks)
+  // Class-wise experiments
   const classExperiments = {
     'class-9': [
       { id: 'onion-peel', title: 'Onion Peel Cell Observation', type: 'microscopy' },
@@ -28,15 +28,13 @@ export default function BiotechSimulations() {
     ]
   };
 
-  // Class data
   const classData = {
-    'class-9': { title: 'Class 9 - Science', color: 'from-orange-500 to-orange-600' },
-    'class-10': { title: 'Class 10 - Science', color: 'from-blue-500 to-blue-600' },
-    'class-11': { title: 'Class 11 - Biology', color: 'from-purple-500 to-purple-600' },
-    'class-12': { title: 'Class 12 - Biology', color: 'from-emerald-500 to-emerald-600' }
+    'class-9': { title: 'Class 9 - Science', color: 'from-amber-400 to-amber-600' },
+    'class-10': { title: 'Class 10 - Science', color: 'from-cyan-400 to-cyan-600' },
+    'class-11': { title: 'Class 11 - Biology', color: 'from-violet-400 to-violet-600' },
+    'class-12': { title: 'Class 12 - Biology', color: 'from-emerald-400 to-emerald-600' }
   };
 
-  // COMPLETE LAB DETAILS - ALL 8 EXPERIMENTS
   const labDetails = {
     'onion-peel': {
       name: 'Onion Peel Cell Observation',
@@ -209,9 +207,9 @@ export default function BiotechSimulations() {
 
     return (
       <div className="space-y-6">
-        <div className="aspect-video bg-gradient-to-br from-gray-900 via-black to-gray-900 rounded-3xl overflow-hidden shadow-2xl relative">
+        <div className="aspect-video bg-gradient-to-br from-[#060d18] via-[#0a1628] to-[#060d18] rounded-2xl overflow-hidden shadow-2xl relative border border-emerald-500/10">
           {loadingVideo ? (
-            <div className="flex items-center justify-center h-full bg-gray-900 text-white">
+            <div className="flex items-center justify-center h-full text-slate-300">
               <div className="w-12 h-12 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mr-4"></div>
               Loading {labId}.mp4...
             </div>
@@ -221,10 +219,10 @@ export default function BiotechSimulations() {
               Your browser does not support video playback.
             </video>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white text-center p-8">
+            <div className="flex flex-col items-center justify-center h-full text-slate-300 text-center p-8">
               <div className="text-2xl mb-4">Video Not Found</div>
-              <div className="text-gray-400 mb-6">{labId}.mp4</div>
-              <button onClick={reloadVideo} className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
+              <div className="text-slate-500 mb-6">{labId}.mp4</div>
+              <button onClick={reloadVideo} className="px-6 py-2 btn-teal rounded-lg">
                 Retry
               </button>
             </div>
@@ -236,14 +234,14 @@ export default function BiotechSimulations() {
 
   // MAIN UI
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-6">
+    <div className="p-6">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-6">
+          <h1 className="text-5xl font-bold shimmer-text mb-6">
             🧪 NCERT Virtual Labs
           </h1>
-          <p className="text-xl text-gray-700 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-400 max-w-2xl mx-auto">
             Biotechnology Experiments - Class 9 to 12
           </p>
         </div>
@@ -252,18 +250,18 @@ export default function BiotechSimulations() {
         {!selectedClass && !activeLab && (
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             {Object.entries(classData).map(([classId, data]) => (
-              <div 
+              <div
                 key={classId}
-                className="bg-white p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-2 border-4 border-transparent hover:border-emerald-300" 
+                className="card-dark p-10 cursor-pointer group hover:-translate-y-2 transition-all duration-300"
                 onClick={() => setSelectedClass(classId)}
               >
-                <div className={`w-24 h-24 ${data.color} rounded-3xl mx-auto mb-8 flex items-center justify-center group-hover:scale-110 transition-all shadow-2xl`}>
+                <div className={`w-24 h-24 bg-gradient-to-br ${data.color} rounded-3xl mx-auto mb-8 flex items-center justify-center group-hover:scale-110 transition-all shadow-2xl`}>
                   <span className="text-3xl font-black text-white drop-shadow-lg">{classId.replace('class-', '')}</span>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800 text-center mb-4 group-hover:text-emerald-600 transition-colors">
+                <h3 className="text-2xl font-bold text-slate-100 text-center mb-4 group-hover:text-emerald-400 transition-colors">
                   {data.title}
                 </h3>
-                <div className="text-emerald-600 font-bold text-lg text-center">
+                <div className="text-emerald-400 font-bold text-lg text-center">
                   {classExperiments[classId].length} Experiments
                 </div>
               </div>
@@ -271,40 +269,40 @@ export default function BiotechSimulations() {
           </div>
         )}
 
-        {/* CLASS EXPERIMENTS - NO BOOKS PAGE */}
+        {/* CLASS EXPERIMENTS */}
         {selectedClass && !activeLab && (
           <div>
-            <button 
-              onClick={() => setSelectedClass(null)} 
-              className="mb-12 px-8 py-3 bg-white text-emerald-600 rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-3 mx-auto text-lg font-semibold border-2 border-emerald-200 hover:bg-emerald-50"
+            <button
+              onClick={() => setSelectedClass(null)}
+              className="mb-12 px-8 py-3 card-dark text-emerald-400 flex items-center gap-3 mx-auto text-lg font-semibold hover:border-emerald-500/30 transition"
             >
               ← Back to Class Selection
             </button>
-            
+
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">
+              <h2 className="text-4xl font-bold text-slate-100 mb-4">
                 {classData[selectedClass].title}
               </h2>
-              <div className="text-2xl text-emerald-600 font-bold">
+              <div className="text-2xl text-emerald-400 font-bold">
                 {classExperiments[selectedClass].length} Experiments
               </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8">
               {classExperiments[selectedClass].map((lab) => (
-                <div 
+                <div
                   key={lab.id}
-                  className="bg-white p-10 rounded-3xl shadow-xl hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-3 border-2 border-transparent hover:border-emerald-200" 
+                  className="card-dark p-10 cursor-pointer group hover:-translate-y-3 transition-all duration-300"
                   onClick={() => setActiveLab(lab.id)}
                 >
-                  <div className={`w-28 h-28 ${classData[selectedClass].color} rounded-3xl mx-auto mb-8 flex items-center justify-center group-hover:scale-110 transition-all shadow-2xl`}>
+                  <div className={`w-28 h-28 bg-gradient-to-br ${classData[selectedClass].color} rounded-3xl mx-auto mb-8 flex items-center justify-center group-hover:scale-110 transition-all shadow-2xl text-4xl`}>
                     🔬
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-800 text-center mb-6 group-hover:text-emerald-600 transition-colors line-clamp-2 px-4">
+                  <h3 className="text-2xl font-bold text-slate-100 text-center mb-6 group-hover:text-emerald-400 transition-colors line-clamp-2 px-4">
                     {lab.title}
                   </h3>
-                  <div className="text-emerald-600 font-bold text-xl text-center">
-                    {lab.type.toUpperCase()}
+                  <div className="text-emerald-400 font-bold text-xl text-center uppercase tracking-wide">
+                    {lab.type}
                   </div>
                 </div>
               ))}
@@ -315,26 +313,25 @@ export default function BiotechSimulations() {
         {/* ACTIVE LAB CONTENT */}
         {activeLab && (
           <div>
-            <button 
-              onClick={() => setActiveLab(null)} 
-              className="mb-12 px-8 py-3 bg-white text-emerald-600 rounded-2xl shadow-xl hover:shadow-2xl transition-all flex items-center gap-3 mx-auto text-lg font-semibold border-2 border-emerald-200 hover:bg-emerald-50"
+            <button
+              onClick={() => setActiveLab(null)}
+              className="mb-12 px-8 py-3 card-dark text-emerald-400 flex items-center gap-3 mx-auto text-lg font-semibold hover:border-emerald-500/30 transition"
             >
               ← Back to Experiments
             </button>
-            
-            <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+
+            <div className="card-dark overflow-hidden">
               {/* TABS */}
-              <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-1">
-                <div className="flex bg-white rounded-2xl overflow-hidden">
+              <div className="p-1 border-b border-emerald-500/10">
+                <div className="flex">
                   {['theory', 'procedure', 'guide', 'viva', 'simulation'].map((step) => (
                     <button
                       key={step}
                       onClick={() => setCurrentStep(step)}
-                      className={`flex-1 py-4 px-6 font-semibold transition-all ${
-                        currentStep === step
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg'
-                          : 'text-gray-600 hover:text-emerald-600 hover:bg-gray-50'
-                      }`}
+                      className={`flex-1 py-4 px-6 font-semibold transition-all rounded-xl ${currentStep === step
+                          ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 text-white shadow-lg shadow-emerald-500/20'
+                          : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/5'
+                        }`}
                     >
                       {step === 'theory' && '📖 Theory'}
                       {step === 'procedure' && '🧪 Procedure'}
@@ -349,22 +346,22 @@ export default function BiotechSimulations() {
               {/* TAB CONTENT */}
               <div className="p-12">
                 {currentStep === 'theory' && (
-                  <div className="prose prose-lg max-w-none">
-                    <h2 className="text-3xl font-bold text-gray-800 mb-6">{labDetails[activeLab]?.name}</h2>
-                    <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">{labDetails[activeLab]?.theory}</p>
+                  <div className="prose-dark max-w-none">
+                    <h2 className="text-3xl font-bold text-slate-100 mb-6">{labDetails[activeLab]?.name}</h2>
+                    <p className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap">{labDetails[activeLab]?.theory}</p>
                   </div>
                 )}
 
                 {currentStep === 'procedure' && (
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">{labDetails[activeLab]?.name} - Procedure</h2>
+                    <h2 className="text-3xl font-bold text-slate-100 mb-8">{labDetails[activeLab]?.name} - Procedure</h2>
                     <div className="space-y-4">
                       {labDetails[activeLab]?.procedure?.map((step, index) => (
-                        <div key={index} className="flex items-start gap-4 p-6 bg-emerald-50 rounded-2xl border-l-4 border-emerald-400">
-                          <div className="flex-shrink-0 w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-0.5">
+                        <div key={index} className="flex items-start gap-4 p-6 bg-emerald-500/8 rounded-2xl border-l-4 border-emerald-500/40">
+                          <div className="flex-shrink-0 w-8 h-8 bg-emerald-600 text-white rounded-full flex items-center justify-center font-bold text-sm mt-0.5 shadow-lg shadow-emerald-500/20">
                             {index + 1}
                           </div>
-                          <p className="text-gray-700 leading-relaxed">{step}</p>
+                          <p className="text-slate-300 leading-relaxed">{step}</p>
                         </div>
                       ))}
                     </div>
@@ -373,26 +370,26 @@ export default function BiotechSimulations() {
 
                 {currentStep === 'guide' && (
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">{labDetails[activeLab]?.name} - Practical Guide</h2>
-                    <div className="prose prose-lg max-w-none">
-                      <p className="text-lg text-gray-700 leading-relaxed whitespace-pre-wrap">{labDetails[activeLab]?.guide}</p>
+                    <h2 className="text-3xl font-bold text-slate-100 mb-8">{labDetails[activeLab]?.name} - Practical Guide</h2>
+                    <div className="prose-dark max-w-none">
+                      <p className="text-lg text-slate-300 leading-relaxed whitespace-pre-wrap">{labDetails[activeLab]?.guide}</p>
                     </div>
                   </div>
                 )}
 
                 {currentStep === 'viva' && (
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-8">{labDetails[activeLab]?.name} - Viva Questions</h2>
+                    <h2 className="text-3xl font-bold text-slate-100 mb-8">{labDetails[activeLab]?.name} - Viva Questions</h2>
                     <div className="space-y-4">
                       {labDetails[activeLab]?.viva?.map((item, index) => (
-                        <div key={index} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+                        <div key={index} className="card-dark p-6">
                           <div className="flex items-start gap-4 mb-3">
-                            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0">
+                            <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-red-500 text-white rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 shadow-lg">
                               Q{index + 1}
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-800 text-lg">{item.q}</p>
-                              <p className="text-emerald-700 font-semibold mt-2 bg-emerald-50 px-4 py-2 rounded-lg inline-block">
+                              <p className="font-semibold text-slate-100 text-lg">{item.q}</p>
+                              <p className="text-emerald-400 font-semibold mt-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-lg inline-block">
                                 {item.a}
                               </p>
                             </div>

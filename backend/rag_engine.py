@@ -296,3 +296,218 @@ Strict output format:
     except Exception as e:
         raise RuntimeError(f"Timetable generation failed: {e}")
 
+
+def generate_ppt(topic: str, class_level: str) -> bytes:
+    """
+    Generates a PowerPoint (.pptx) file for a given topic using:
+    1. Supabase RAG to retrieve relevant textbook content
+    2. Groq LLM to structure it into slides
+    3. python-pptx to build the actual presentation
+    Returns raw bytes of the .pptx file.
+    """
+    import json
+    import io
+    from pptx import Presentation
+    from pptx.util import Inches, Pt, Emu
+    from pptx.dml.color import RGBColor
+    from pptx.enum.text import PP_ALIGN
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    # ── 1. Embed the topic query ─────────────────────────────────────────────
+    try:
+        embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        query_embedding = embeddings_model.embed_query(topic)
+    except Exception as e:
+        raise RuntimeError(f"Embedding error: {e}")
+
+    # ── 2. Retrieve relevant chunks from Supabase ────────────────────────────
+    try:
+        supabase = get_supabase_client()
+        rpc_params = {
+            "query_embedding": query_embedding,
+            "match_threshold": 0.3,
+            "match_count": 10,
+            "p_class_level": class_level if class_level != "general" else None,
+        }
+        result = supabase.rpc("match_rag_chunks", rpc_params).execute()
+        chunks = result.data or []
+    except Exception as e:
+        raise RuntimeError(f"Supabase retrieval error: {e}")
+
+    if not chunks:
+        raise RuntimeError(
+            f"No textbook content found for topic '{topic}' in Class {class_level}. "
+            "Please ensure the relevant PDFs are indexed."
+        )
+
+    context = "\n\n".join(
+        f"[{c.get('chapter', 'Chapter')}]\n{c['content_chunk']}"
+        for c in chunks
+    )
+
+    # ── 3. Ask LLM to structure content into slides JSON ────────────────────
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2, api_key=api_key)
+
+    slide_prompt = f"""You are an academic presentation designer for Class {class_level} students.
+
+Using ONLY the textbook content below, create a structured PowerPoint presentation on the topic: "{topic}"
+
+TEXTBOOK CONTENT:
+{context}
+
+OUTPUT FORMAT: Return ONLY a valid JSON object (no markdown, no explanation):
+{{
+  "title": "<presentation title>",
+  "subtitle": "Class {class_level} | <subject>",
+  "slides": [
+    {{
+      "title": "<slide heading>",
+      "bullets": ["<key point 1>", "<key point 2>", "<key point 3>"],
+      "notes": "<speaker notes – 1-2 sentences expanding on this slide>"
+    }}
+  ]
+}}
+
+RULES:
+1. Create 6-10 content slides (not counting title slide).
+2. Each slide must have 3-5 concise bullet points. Bullets must be from the textbook content only.
+3. First slide after title: Definition/Overview. Last slide: Summary/Key Takeaways.
+4. Keep bullets short (max 12 words each).
+5. Do NOT add facts not present in the textbook content.
+6. Return ONLY valid JSON."""
+
+    try:
+        response = llm.invoke(slide_prompt)
+        raw = response.content.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+        slide_data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise RuntimeError("LLM returned invalid JSON for slides. Please try again.")
+    except Exception as e:
+        raise RuntimeError(f"Slide generation failed: {e}")
+
+    # ── 4. Build .pptx with python-pptx ─────────────────────────────────────
+    prs = Presentation()
+    prs.slide_width  = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+
+    # Color palette
+    DARK_BG    = RGBColor(0x0F, 0x17, 0x2A)   # deep navy
+    ACCENT     = RGBColor(0x00, 0xD4, 0xAA)   # teal
+    WHITE      = RGBColor(0xFF, 0xFF, 0xFF)
+    LIGHT_GREY = RGBColor(0xC8, 0xD6, 0xE5)
+
+    def set_bg(slide, color: RGBColor):
+        """Fill slide background with a solid color."""
+        fill = slide.background.fill
+        fill.solid()
+        fill.fore_color.rgb = color
+
+    def add_textbox(slide, text, left, top, width, height,
+                    font_size=18, bold=False, color=WHITE,
+                    align=PP_ALIGN.LEFT, wrap=True):
+        txb = slide.shapes.add_textbox(
+            Inches(left), Inches(top), Inches(width), Inches(height)
+        )
+        tf = txb.text_frame
+        tf.word_wrap = wrap
+        p = tf.paragraphs[0]
+        p.alignment = align
+        run = p.add_run()
+        run.text = text
+        run.font.size = Pt(font_size)
+        run.font.bold = bold
+        run.font.color.rgb = color
+        return txb
+
+    # ── Title slide ──────────────────────────────────────────────────────────
+    blank_layout = prs.slide_layouts[6]   # completely blank
+    slide = prs.slides.add_slide(blank_layout)
+    set_bg(slide, DARK_BG)
+
+    # Accent bar on the left
+    bar = slide.shapes.add_shape(
+        1,  # MSO_SHAPE_TYPE.RECTANGLE
+        Inches(0), Inches(0), Inches(0.35), Inches(7.5)
+    )
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = ACCENT
+    bar.line.fill.background()
+
+    add_textbox(slide, slide_data.get("title", topic),
+                0.6, 2.5, 11, 1.5, font_size=40, bold=True,
+                color=WHITE, align=PP_ALIGN.LEFT)
+    add_textbox(slide, slide_data.get("subtitle", f"Class {class_level}"),
+                0.6, 4.2, 11, 0.6, font_size=20, bold=False,
+                color=ACCENT, align=PP_ALIGN.LEFT)
+    add_textbox(slide, "BioGenie – AI Learning Platform",
+                0.6, 6.8, 11, 0.5, font_size=12, bold=False,
+                color=LIGHT_GREY, align=PP_ALIGN.LEFT)
+
+    # ── Content slides ────────────────────────────────────────────────────────
+    for s in slide_data.get("slides", []):
+        slide = prs.slides.add_slide(blank_layout)
+        set_bg(slide, DARK_BG)
+
+        # Top accent strip
+        strip = slide.shapes.add_shape(
+            1, Inches(0), Inches(0), Inches(13.33), Inches(0.08)
+        )
+        strip.fill.solid()
+        strip.fill.fore_color.rgb = ACCENT
+        strip.line.fill.background()
+
+        # Slide title
+        add_textbox(slide, s.get("title", ""),
+                    0.5, 0.2, 12.5, 0.8, font_size=28, bold=True,
+                    color=WHITE, align=PP_ALIGN.LEFT)
+
+        # Divider line (thin rectangle)
+        div = slide.shapes.add_shape(
+            1, Inches(0.5), Inches(1.15), Inches(12.33), Inches(0.03)
+        )
+        div.fill.solid()
+        div.fill.fore_color.rgb = ACCENT
+        div.line.fill.background()
+
+        # Bullet points in a text box
+        bullets = s.get("bullets", [])
+        if bullets:
+            txb = slide.shapes.add_textbox(
+                Inches(0.6), Inches(1.35), Inches(12), Inches(5.5)
+            )
+            tf = txb.text_frame
+            tf.word_wrap = True
+            for i, bullet in enumerate(bullets):
+                p = tf.add_paragraph() if i > 0 else tf.paragraphs[0]
+                p.level = 0
+                p.space_before = Pt(4)
+                run = p.add_run()
+                run.text = f"  •  {bullet}"
+                run.font.size = Pt(20)
+                run.font.color.rgb = LIGHT_GREY
+
+        # Speaker notes
+        notes_text = s.get("notes", "")
+        if notes_text:
+            notes_slide = slide.notes_slide
+            notes_slide.notes_text_frame.text = notes_text
+
+    # ── Final summary slide ───────────────────────────────────────────────────
+    slide = prs.slides.add_slide(blank_layout)
+    set_bg(slide, ACCENT)
+    add_textbox(slide, "Thank You", 1, 2.5, 11, 1.5,
+                font_size=48, bold=True, color=DARK_BG, align=PP_ALIGN.CENTER)
+    add_textbox(slide, f"Topic: {topic} | BioGenie AI",
+                1, 4.2, 11, 0.6, font_size=18, bold=False,
+                color=DARK_BG, align=PP_ALIGN.CENTER)
+
+    # ── Serialise to bytes ────────────────────────────────────────────────────
+    buf = io.BytesIO()
+    prs.save(buf)
+    buf.seek(0)
+    return buf.read()

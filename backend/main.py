@@ -6,10 +6,11 @@ import os
 import fitz
 from fastapi import FastAPI, HTTPException, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 
-from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse
-from rag_engine import query_notes, summarize_notes, generate_timetable
+from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse, PptRequest
+from rag_engine import query_notes, summarize_notes, generate_timetable, generate_ppt
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv(override=True)
@@ -131,3 +132,28 @@ async def timetable_endpoint(request: TimetableRequest):
         return TimetableResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Timetable generation failed: {str(e)}")
+
+
+@app.post("/generate-ppt")
+async def ppt_endpoint(request: PptRequest):
+    """
+    Generates a PowerPoint (.pptx) from textbook content on the given topic.
+    Returns the file as a downloadable stream.
+    """
+    if not request.topic.strip():
+        raise HTTPException(status_code=400, detail="Topic cannot be empty.")
+
+    try:
+        import io
+        pptx_bytes = generate_ppt(
+            topic=request.topic.strip(),
+            class_level=request.class_level or "general",
+        )
+        filename = request.topic.strip().replace(" ", "_")[:50] + ".pptx"
+        return StreamingResponse(
+            io.BytesIO(pptx_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

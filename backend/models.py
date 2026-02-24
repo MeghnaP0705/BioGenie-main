@@ -36,3 +36,8 @@ class TimetableRequest(BaseModel):
 
 class TimetableResponse(BaseModel):
     plan: List[Any]  # List of {date, topic, activity_type, description}
+
+
+class PptRequest(BaseModel):
+    topic: str
+    class_level: Optional[str] = "general"

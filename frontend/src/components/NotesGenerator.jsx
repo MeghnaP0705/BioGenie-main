@@ -4,12 +4,11 @@ import { marked } from 'marked'
 const API_BASE = "http://localhost:8000"
 
 
-
 // ─── Typing indicator ──────────────────────────────────────────────────────────
 function TypingIndicator() {
     return (
-        <div className="flex items-center gap-1 px-4 py-3 bg-white border border-gray-100 rounded-2xl rounded-tl-sm shadow-sm w-fit">
-            <span className="text-xs text-gray-400 mr-1">BioGenie is thinking</span>
+        <div className="typing-indicator">
+            <span className="text-xs text-emerald-400 mr-1">BioGenie is thinking</span>
             {[0, 1, 2].map(i => (
                 <span
                     key={i}
@@ -136,37 +135,35 @@ export default function NotesGenerator({ onBack }) {
         }
     }
 
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex flex-col">
+    const statusClass = backendReady === null ? "status-badge loading" :
+        backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"
+    const dotClass = backendReady === null ? "bg-slate-400" :
+        backendReady ? (indexReady ? "bg-emerald-400 animate-pulse" : "bg-amber-400") : "bg-red-400"
+    const statusText = backendReady === null ? "Connecting..." :
+        backendReady ? (indexReady ? "Knowledge Base Ready" : "No Notes Indexed") : "Server Offline"
 
+    return (
+        <div className="page-dark flex flex-col">
             {/* ─ Header ─ */}
-            <header className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 px-6 py-4 flex items-center justify-between shadow-sm">
+            <header className="feature-header flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="text-sm text-gray-500 hover:text-emerald-700 transition flex items-center gap-1"
+                        className="text-sm text-slate-500 hover:text-emerald-400 transition flex items-center gap-1"
                     >
                         ← Back
                     </button>
                     <div>
-                        <h1 className="text-xl font-bold text-emerald-800">Biotechnology Notes Generator</h1>
-                        <p className="text-xs text-gray-500">Class 9–12 Syllabus · Official Textbook Notes Only</p>
+                        <h1 className="text-xl font-bold text-slate-100">Biotechnology Notes Generator</h1>
+                        <p className="text-xs text-slate-500">Class 9–12 Syllabus · Official Textbook Notes Only</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Backend status badge */}
-                    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${backendReady === null ? "bg-gray-100 text-gray-500" :
-                        backendReady ? (indexReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")
-                            : "bg-red-100 text-red-600"
-                        }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${backendReady === null ? "bg-gray-400" :
-                            backendReady ? (indexReady ? "bg-emerald-500 animate-pulse" : "bg-amber-400") : "bg-red-400"
-                            }`} />
-                        {backendReady === null ? "Connecting..." :
-                            backendReady ? (indexReady ? "Knowledge Base Ready" : "No Notes Indexed") : "Server Offline"}
+                    <div className={statusClass}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
+                        {statusText}
                     </div>
-                    {/* Download Full Notes Button */}
                     <button
                         onClick={() => {
                             const fullHistory = messages
@@ -179,43 +176,37 @@ export default function NotesGenerator({ onBack }) {
                                 alert("No generated notes to download yet!")
                             }
                         }}
-                        className="text-xs font-semibold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition shadow-sm ml-4"
+                        className="text-xs font-semibold bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition shadow-sm shadow-emerald-500/20 ml-4"
                     >
                         ⬇ Download Full Session Notes
                     </button>
                 </div>
             </header>
 
-            {/* ─ Main Content: Chat (left) + Notes Preview (right) ─ */}
+            {/* ─ Main Content: Chat ─ */}
             <div className="flex flex-1 overflow-hidden gap-4 p-4 md:p-6">
-
-                {/* ─ LEFT: Chat Panel ─ */}
-                <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="flex flex-col flex-1 feature-panel overflow-hidden">
 
                     {/* Chat history */}
                     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
                                 {msg.from === "bot" && (
-                                    <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 mt-0.5">
+                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-[#060d18] text-xs font-bold mr-2 flex-shrink-0 mt-0.5">
                                         B
                                     </div>
                                 )}
-                                <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm flex flex-col ${msg.from === "user"
-                                    ? "bg-emerald-600 text-white rounded-tr-sm text-sm"
-                                    : "bg-gray-50 border border-gray-100 rounded-tl-sm"
-                                    }`}>
+                                <div className={msg.from === "user" ? "chat-bubble-user" : "chat-bubble-bot"}>
                                     {msg.from === "bot" ? (
                                         <>
                                             <div
-                                                className="flex-1 text-sm text-gray-800 prose prose-sm prose-emerald max-w-none space-y-2 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>h3]:text-emerald-800 [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1 [&>p>strong]:text-emerald-900 leading-relaxed"
+                                                className="flex-1 text-sm prose-dark prose prose-sm max-w-none space-y-2 [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 leading-relaxed"
                                                 dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }}
                                             />
-                                            {/* Inject download single note button directly under the bot's response */}
                                             {i > 0 && (
                                                 <button
                                                     onClick={() => downloadNotesPDF(msg.text)}
-                                                    className="self-start mt-3 flex items-center gap-1.5 text-xs bg-emerald-100 text-emerald-800 font-medium px-2.5 py-1.5 rounded-md hover:bg-emerald-200 transition"
+                                                    className="self-start mt-3 flex items-center gap-1.5 text-xs bg-emerald-500/15 text-emerald-400 font-medium px-2.5 py-1.5 rounded-md hover:bg-emerald-500/25 transition border border-emerald-500/20"
                                                 >
                                                     <span>⬇</span> Download this note
                                                 </button>
@@ -230,7 +221,7 @@ export default function NotesGenerator({ onBack }) {
 
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0">
+                                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-[#060d18] text-xs font-bold mr-2 flex-shrink-0">
                                     B
                                 </div>
                                 <TypingIndicator />
@@ -241,7 +232,7 @@ export default function NotesGenerator({ onBack }) {
                     </div>
 
                     {/* Input bar */}
-                    <div className="p-4 border-t border-gray-100 bg-white">
+                    <div className="p-4 border-t border-emerald-500/10">
                         <div className="flex items-end gap-2">
                             <textarea
                                 ref={inputRef}
@@ -250,17 +241,17 @@ export default function NotesGenerator({ onBack }) {
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Ask from your Biotechnology notes... (e.g. Explain Genetic Engineering)"
-                                className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
+                                className="flex-1 resize-none inp rounded-xl"
                             />
                             <button
                                 onClick={handleSend}
                                 disabled={!input.trim() || loading}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-5 py-3 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 font-medium text-sm"
+                                className="btn-teal rounded-xl px-5 py-3 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 text-sm"
                             >
                                 Send
                             </button>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1.5 ml-1">Press Enter to send · Shift+Enter for new line</p>
+                        <p className="text-xs text-slate-600 mt-1.5 ml-1">Press Enter to send · Shift+Enter for new line</p>
                     </div>
                 </div>
             </div>

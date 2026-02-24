@@ -6,43 +6,36 @@ import Summarizer from "./components/Summarizer"
 import DoubtSolver from "./components/DoubtSolver"
 import PreviousYearPapers from "./components/PreviousYearPapers"
 import TimetableGenerator from "./components/TimetableGenerator"
+import PptMaker from "./components/PptMaker"
 
+/* ═══════════════════════════════════════════════════════════
+   APP ROOT
+═══════════════════════════════════════════════════════════ */
 function App() {
-
   const [page, setPage] = useState("landing")
   const [role, setRole] = useState(null)
   const [userName, setUserName] = useState("")
   const [selectedGem, setSelectedGem] = useState(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // ✅ AUTH + PASSWORD RECOVERY HANDLER (FIXED)
   useEffect(() => {
     const initAuth = async () => {
       const hash = window.location.hash
-
-      // 🔐 PASSWORD RECOVERY HAS ABSOLUTE PRIORITY
       if (hash && hash.includes("type=recovery")) {
         setIsAuthenticated(false)
         setPage("updatePassword")
         return
       }
-
-      // 🔑 NORMAL SESSION RESTORE
       const { data } = await supabase.auth.getSession()
-
       if (data?.session?.user) {
         setIsAuthenticated(true)
-        setUserName(
-          data.session.user.user_metadata?.full_name || ""
-        )
+        setUserName(data.session.user.user_metadata?.full_name || "")
         setPage("roles")
       }
     }
-
     initAuth()
   }, [])
 
-  // ✅ LOGOUT
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setIsAuthenticated(false)
@@ -51,8 +44,6 @@ function App() {
     setSelectedGem(null)
     setPage("landing")
   }
-
-  /* ---------------- ROUTING ---------------- */
 
   if (page === "signup" || page === "login") {
     return (
@@ -71,38 +62,25 @@ function App() {
       />
     )
   }
-
-  if (page === "reset") {
-    return <ResetPasswordPage goBack={() => setPage("login")} />
-  }
-
-  // ✅ 🔥 THIS IS THE FIX YOU WERE ASKING ABOUT 🔥
+  if (page === "reset") return <ResetPasswordPage goBack={() => setPage("login")} />
   if (page === "updatePassword") {
     return (
       <UpdatePassword
-        onDone={() => {
-          window.location.hash = "" // 🔥 VERY IMPORTANT
-          setPage("login")
-        }}
+        onDone={() => { window.location.hash = ""; setPage("login") }}
       />
     )
   }
-
   if (page === "roles") {
     return (
       <RoleSelection
         userName={userName}
         isAuthenticated={isAuthenticated}
-        onEnter={(selectedRole) => {
-          setRole(selectedRole)
-          setPage("dashboard")
-        }}
+        onEnter={(r) => { setRole(r); setPage("dashboard") }}
         onLogout={handleLogout}
         onBack={() => setPage("landing")}
       />
     )
   }
-
   if (page === "dashboard") {
     return (
       <RoleDashboard
@@ -110,15 +88,11 @@ function App() {
         isAuthenticated={isAuthenticated}
         userName={userName}
         onLogout={handleLogout}
-        onOpen={(gem) => {
-          setSelectedGem(gem)
-          setPage("gem")
-        }}
+        onOpen={(gem) => { setSelectedGem(gem); setPage("gem") }}
         onBack={() => setPage("roles")}
       />
     )
   }
-
   if (page === "gem") {
     return (
       <GemScreen
@@ -131,7 +105,6 @@ function App() {
       />
     )
   }
-
   return (
     <LandingPage
       onStart={() => setPage("roles")}
@@ -144,705 +117,580 @@ function App() {
   )
 }
 
-
-
-function LandingPage({
-  onStart,
-  goLogin,
-  goSignup,
-  isAuthenticated,
-  userName,
-  onLogout
-}) {
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100">
-
-      <div className="flex justify-between items-center px-8 py-4 relative">
-
-        <h1 className="text-2xl font-bold text-emerald-700">
-          BioGenie
-        </h1>
-
-        {!isAuthenticated ? (
-
-          <div className="flex gap-3">
-            <button
-              onClick={goLogin}
-              className="px-4 py-2 rounded-lg border border-emerald-600 text-emerald-700 hover:bg-emerald-50 transition"
-            >
-              Sign In
-            </button>
-
-            <button
-              onClick={goSignup}
-              className="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition"
-            >
-              Sign Up
-            </button>
-          </div>
-
-        ) : (
-
-          <ProfileDropdown
-            userName={userName}
-            onLogout={onLogout}
-          />
-
-        )}
-
-      </div>
-
-      <div className="flex flex-col items-center justify-center text-center px-6 py-24">
-
-        <h1 className="text-6xl font-bold text-emerald-700 mb-6">
-          BioGenie
-        </h1>
-
-        <p className="max-w-xl text-lg text-gray-700 mb-10">
-          A personalized biotechnology learning assistant designed for students,
-          teachers, and the public. Curriculum aligned and rural friendly.
-        </p>
-
-        <button
-          onClick={onStart}
-          className="bg-emerald-600 text-white px-10 py-4 rounded-xl text-lg shadow-lg hover:bg-emerald-700 transition"
-        >
-          {isAuthenticated ? "Go to Dashboard" : "Continue as Guest"}
-        </button>
-
-
-      </div>
-    </div>
-  )
-}
-
+/* ═══════════════════════════════════════════════════════════
+   SHARED: Profile Dropdown
+═══════════════════════════════════════════════════════════ */
 function ProfileDropdown({ userName, onLogout }) {
-
   const [open, setOpen] = useState(false)
-  const dropdownRef = useRef(null)
-
-  const firstLetter = userName ? userName.charAt(0).toUpperCase() : "U"
-
-  // ✅ CLOSE DROPDOWN WHEN CLICKING OUTSIDE
+  const ref = useRef(null)
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpen(false)
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside)
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
+    const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener("mousedown", h)
+    return () => document.removeEventListener("mousedown", h)
   }, [])
-
+  const initial = userName ? userName.charAt(0).toUpperCase() : "U"
   return (
-    <div ref={dropdownRef} className="relative flex justify-end">
-
+    <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-emerald-500/15 hover:bg-emerald-500/8 transition"
       >
-        <div className="w-7 h-7 bg-white text-emerald-600 rounded-full flex items-center justify-center text-sm font-bold">
-          {firstLetter}
+        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-sm font-bold text-[#060d18]">
+          {initial}
         </div>
-
-        <span>{userName}</span>
-        <span className="text-sm">▾</span>
+        <span className="text-sm text-slate-300">{userName}</span>
+        <span className="text-slate-500 text-xs">▾</span>
       </button>
-
       {open && (
-        <div className="absolute right-0 mt-2 w-48 bg-white shadow-2xl rounded-xl border border-gray-200">
-
-          <div className="px-4 py-3 text-sm border-b text-gray-600">
-            Signed in as
-            <div className="font-semibold text-gray-800">
-              {userName}
-            </div>
+        <div className="absolute right-0 mt-2 w-48 rounded-xl glass-dark border border-emerald-500/15 overflow-hidden z-50 anim-scalePop">
+          <div className="px-4 py-3 border-b border-emerald-500/10">
+            <p className="text-xs text-slate-500">Signed in as</p>
+            <p className="text-sm font-semibold text-slate-200 truncate">{userName}</p>
           </div>
-
           <button
             onClick={onLogout}
-            className="w-full text-left px-4 py-3 hover:bg-gray-100 text-red-600"
+            className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 transition"
           >
-            Logout
+            Sign Out
           </button>
-
         </div>
       )}
     </div>
   )
 }
 
+/* ═══════════════════════════════════════════════════════════
+   SHARED: Nav Bar
+═══════════════════════════════════════════════════════════ */
+function NavBar({ goLogin, goSignup, isAuthenticated, userName, onLogout, onBack }) {
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-8 py-4 glass-dark border-b border-emerald-500/8">
+      <div className="flex items-center gap-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-slate-500 hover:text-emerald-400 transition text-sm flex items-center gap-1 mr-2"
+          >
+            ← Back
+          </button>
+        )}
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-[#060d18] font-black text-sm shadow-lg shadow-emerald-500/20">
+          B
+        </div>
+        <span className="font-bold text-slate-100 text-lg tracking-tight">BioGenie</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {!isAuthenticated ? (
+          <>
+            <button onClick={goLogin} className="btn-outline px-4 py-2 rounded-xl text-sm">Sign In</button>
+            <button onClick={goSignup} className="btn-teal px-4 py-2 rounded-xl text-sm">Sign Up</button>
+          </>
+        ) : (
+          <ProfileDropdown userName={userName} onLogout={onLogout} />
+        )}
+      </div>
+    </nav>
+  )
+}
 
+/* ═══════════════════════════════════════════════════════════
+   LANDING PAGE
+═══════════════════════════════════════════════════════════ */
+function LandingPage({ onStart, goLogin, goSignup, isAuthenticated, userName, onLogout }) {
+  const features = [
+    { icon: "📊", title: "PPT Maker", desc: "Generate presentation slides from textbook content" },
+    { icon: "📝", title: "Notes Generator", desc: "AI-powered structured notes from uploaded PDFs" },
+    { icon: "🔍", title: "Summarizer", desc: "Get concise summaries of textbook chapters" },
+    { icon: "💬", title: "Doubt Solver", desc: "Ask questions, get answers from your textbooks" },
+    { icon: "📅", title: "Timetable Generator", desc: "Personalised AI study plans for your exams" },
+    { icon: "📄", title: "Previous Year Papers", desc: "Access question papers with answer keys" },
+  ]
 
+  return (
+    <div className="page-bg dot-pattern">
+      {/* Ambient orbs */}
+      <div className="orb w-96 h-96 bg-emerald-500/12 top-[-80px] left-[-80px] anim-float" />
+      <div className="orb w-80 h-80 bg-cyan-500/8 top-20 right-[-60px] anim-float-delay" />
+      <div className="orb w-64 h-64 bg-emerald-400/6 bottom-40 left-1/3 anim-float-slow" />
+      <div className="orb w-48 h-48 bg-lime-400/5 bottom-20 right-1/4 anim-mesh" />
 
+      <NavBar goLogin={goLogin} goSignup={goSignup} isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} />
 
+      {/* Hero */}
+      <section className="flex flex-col items-center justify-center text-center px-6 pt-40 pb-28">
+        <div className="badge-teal mb-6 anim-fadeUp">
+          <span>🧬</span> AI-Powered Biotechnology Learning
+        </div>
 
-// ================= AUTH PAGE =================
+        <h1 className="text-6xl md:text-7xl font-black tracking-tight leading-tight mb-6 anim-fadeUp-1">
+          <span className="shimmer-text">BioGenie</span>
+        </h1>
 
+        <p className="max-w-xl text-lg text-slate-400 mb-10 leading-relaxed anim-fadeUp-2">
+          A personalized biotechnology learning platform for Class 9–12 students.
+          AI-generated notes, doubt solving, presentations — all from your textbooks.
+        </p>
+
+        <div className="flex gap-4 flex-wrap justify-center anim-fadeUp-3">
+          <button
+            onClick={onStart}
+            className="btn-teal px-8 py-4 rounded-2xl text-base anim-glow"
+          >
+            {isAuthenticated ? "Go to Dashboard →" : "Continue as Guest →"}
+          </button>
+          {!isAuthenticated && (
+            <button onClick={goLogin} className="btn-outline px-8 py-4 rounded-2xl text-base">
+              Sign In
+            </button>
+          )}
+        </div>
+
+        {/* Floating stats */}
+        <div className="flex gap-8 mt-16 anim-fadeUp-4 flex-wrap justify-center">
+          {[["12+", "Subjects Covered"], ["6", "AI Features"], ["9–12", "Classes Supported"]].map(([n, l]) => (
+            <div key={l} className="text-center">
+              <p className="text-3xl font-black text-emerald-400">{n}</p>
+              <p className="text-xs text-slate-500 mt-1">{l}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="divider mx-auto max-w-4xl" />
+
+      {/* Features grid */}
+      <section className="px-6 py-24 max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <p className="badge-teal mb-4">Features</p>
+          <h2 className="text-4xl font-bold text-slate-100">Everything you need to excel</h2>
+          <p className="text-slate-500 mt-3">All powered by your actual textbook content — no hallucinations</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-5 stagger">
+          {features.map((f) => (
+            <div key={f.title} className="gem-card rounded-2xl p-6 anim-fadeUp cursor-default">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-2xl mb-4">
+                {f.icon}
+              </div>
+              <h3 className="text-base font-semibold text-slate-100 mb-2">{f.title}</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="px-6 pb-24">
+        <div className="max-w-3xl mx-auto rounded-3xl p-12 text-center glass border border-emerald-500/15 relative overflow-hidden">
+          <div className="orb w-60 h-60 bg-emerald-500/15 top-[-60px] right-[-40px] anim-float-slow" />
+          <h2 className="text-3xl font-bold text-slate-100 mb-4 relative z-10">Ready to start learning smarter?</h2>
+          <p className="text-slate-500 mb-8 relative z-10">Join students already using BioGenie to ace their exams.</p>
+          <button onClick={onStart} className="btn-teal px-10 py-4 rounded-2xl text-base relative z-10">
+            {isAuthenticated ? "Open Dashboard →" : "Start for Free →"}
+          </button>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-emerald-500/8 py-6 text-center">
+        <p className="text-slate-600 text-sm">© 2026 BioGenie · Built for biotechnology students</p>
+      </footer>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AUTH PAGE (Login / Sign Up)
+═══════════════════════════════════════════════════════════ */
 function AuthPage({ mode, goToLogin, goToSignup, goHome, onSuccess, goToReset }) {
-
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
-
     if (!email || !password || (mode === "signup" && !fullName)) {
-      setError("Please fill all fields")
-      return
+      setError("Please fill all fields"); return
     }
-
+    setLoading(true); setError("")
     try {
-
       if (mode === "signup") {
-
         const { error } = await supabase.auth.signUp({
-          email: email,
-          password: password,
-          options: {
-            data: {
-              full_name: fullName
-            }
-          }
+          email, password,
+          options: { data: { full_name: fullName } }
         })
-
         if (error) throw error
-
-        alert("Account created successfully! Please login.")
+        alert("Account created! Please sign in.")
         goToLogin()
-      }
-
-      if (mode === "login") {
-
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password
-        })
-
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
-
         onSuccess()
       }
-
-    } catch (err) {
-      setError(err.message)
-    }
+    } catch (err) { setError(err.message) }
+    finally { setLoading(false) }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
+    <div className="page-bg dot-pattern flex items-center justify-center min-h-screen">
+      <div className="orb w-72 h-72 bg-emerald-500/12 top-[-40px] left-[-60px] anim-float" />
+      <div className="orb w-56 h-56 bg-cyan-500/8 bottom-20 right-[-30px] anim-float-delay" />
 
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-[420px]">
-
-        <button onClick={goHome} className="text-sm text-gray-500 mb-4">
-          ← Back
+      <div className="w-full max-w-md px-6 anim-scalePop">
+        <button onClick={goHome} className="text-slate-500 hover:text-emerald-400 text-sm flex items-center gap-1 mb-8 transition">
+          ← Back to Home
         </button>
 
-        <h2 className="text-3xl font-bold text-emerald-700 text-center mb-8">
-          {mode === "signup" ? "Create Account" : "Welcome Back"}
-        </h2>
-
-        {mode === "signup" && (
-          <input
-            type="text"
-            placeholder="Full Name"
-            className="w-full p-3 border rounded-lg mb-4"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-        )}
-
-        <input
-          type="email"
-          placeholder="Email"
-          className="w-full p-3 border rounded-lg mb-4"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-3 border rounded-lg mb-2"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        {/* ✅ STEP 3 — Forgot Password Link (Login Only) */}
-        {mode === "login" && (
-          <div className="text-right text-sm mb-4">
-            <span
-              onClick={goToReset}
-              className="text-emerald-600 cursor-pointer hover:underline"
-            >
-              Forgot Password?
-            </span>
+        <div className="glass-dark rounded-3xl p-8 border border-emerald-500/15">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center font-black text-[#060d18] shadow-lg shadow-emerald-500/20">B</div>
+            <span className="text-xl font-bold text-slate-100">BioGenie</span>
           </div>
-        )}
 
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">
-            {error}
+          <h2 className="text-2xl font-bold text-slate-100 text-center mb-2">
+            {mode === "signup" ? "Create an account" : "Welcome back"}
+          </h2>
+          <p className="text-slate-500 text-sm text-center mb-8">
+            {mode === "signup" ? "Start learning smarter today" : "Sign in to continue learning"}
           </p>
-        )}
 
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition"
-        >
-          {mode === "signup" ? "Sign Up" : "Sign In"}
-        </button>
+          <div className="flex flex-col gap-4">
+            {mode === "signup" && (
+              <div>
+                <label className="text-xs text-slate-400 mb-1.5 block font-medium">Full Name</label>
+                <input className="inp" type="text" placeholder="Your full name" value={fullName} onChange={e => setFullName(e.target.value)} />
+              </div>
+            )}
+            <div>
+              <label className="text-xs text-slate-400 mb-1.5 block font-medium">Email</label>
+              <input className="inp" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs text-slate-400 font-medium">Password</label>
+                {mode === "login" && (
+                  <span onClick={goToReset} className="text-xs text-emerald-400 cursor-pointer hover:text-emerald-300 transition">
+                    Forgot password?
+                  </span>
+                )}
+              </div>
+              <input className="inp" type="password" placeholder="••••••••" value={password}
+                onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+            </div>
 
-        <div className="text-center mt-6 text-sm">
-          {mode === "signup" ? (
-            <>
-              Already have an account?{" "}
-              <span onClick={goToLogin} className="text-emerald-600 cursor-pointer">
-                Sign In
-              </span>
-            </>
-          ) : (
-            <>
-              Don't have an account?{" "}
-              <span onClick={goToSignup} className="text-emerald-600 cursor-pointer">
-                Sign Up
-              </span>
-            </>
-          )}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400">
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="btn-teal w-full py-3.5 rounded-xl mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Please wait…" : mode === "signup" ? "Create Account" : "Sign In"}
+            </button>
+          </div>
+
+          <p className="text-center text-sm text-slate-500 mt-6">
+            {mode === "signup" ? "Already have an account? " : "Don't have an account? "}
+            <span
+              onClick={mode === "signup" ? goToLogin : goToSignup}
+              className="text-emerald-400 cursor-pointer hover:text-emerald-300 transition font-medium"
+            >
+              {mode === "signup" ? "Sign In" : "Sign Up"}
+            </span>
+          </p>
         </div>
-
       </div>
     </div>
   )
 }
 
+/* ═══════════════════════════════════════════════════════════
+   RESET PASSWORD
+═══════════════════════════════════════════════════════════ */
 function ResetPasswordPage({ goBack }) {
-
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
   const handleReset = async () => {
-    if (!email) {
-      setError("Please enter your email")
-      return
-    }
-
+    if (!email) { setError("Please enter your email"); return }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: "http://localhost:5173/reset-password"
     })
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setError("")
-      setMessage("Password reset link sent to your email.")
-    }
+    if (error) setError(error.message)
+    else { setError(""); setMessage("Reset link sent! Check your inbox.") }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
-
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-[420px]">
-
-        <button onClick={goBack} className="text-sm text-gray-500 mb-4">
-          ← Back to Login
+    <div className="page-bg dot-pattern flex items-center justify-center min-h-screen">
+      <div className="w-full max-w-md px-6 anim-scalePop">
+        <button onClick={goBack} className="text-slate-500 hover:text-emerald-400 text-sm flex items-center gap-1 mb-8 transition">
+          ← Back to Sign In
         </button>
-
-        <h2 className="text-3xl font-bold text-emerald-700 text-center mb-8">
-          Reset Password
-        </h2>
-
-        <input
-          type="email"
-          placeholder="Enter your registered email"
-          className="w-full p-3 border rounded-lg mb-4"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">
-            {error}
-          </p>
-        )}
-
-        {message && (
-          <p className="text-green-600 text-sm mb-4 text-center">
-            {message}
-          </p>
-        )}
-
-        <button
-          onClick={handleReset}
-          className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition"
-        >
-          Send Reset Link
-        </button>
-
+        <div className="glass-dark rounded-3xl p-8 border border-emerald-500/15">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">Reset Password</h2>
+          <p className="text-slate-500 text-sm mb-8">Enter your email and we'll send a reset link.</p>
+          <div className="flex flex-col gap-4">
+            <input className="inp" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            {message && <p className="text-sm text-emerald-400">{message}</p>}
+            <button onClick={handleReset} className="btn-teal w-full py-3.5 rounded-xl">Send Reset Link</button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
+/* ═══════════════════════════════════════════════════════════
+   UPDATE PASSWORD
+═══════════════════════════════════════════════════════════ */
 function UpdatePassword({ onDone }) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
 
   const handleUpdate = async () => {
-    if (!password) {
-      setError("Please enter a new password")
-      return
-    }
-
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    })
-
-    if (error) {
-      setError(error.message)
-    } else {
-      setSuccess(true)
-      setTimeout(() => {
-        onDone()
-      }, 2000)
-    }
+    if (!password) { setError("Please enter a new password"); return }
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) setError(error.message)
+    else { setSuccess(true); setTimeout(onDone, 2000) }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex items-center justify-center">
-
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-[420px]">
-
-        <h2 className="text-3xl font-bold text-emerald-700 text-center mb-6">
-          Set New Password
-        </h2>
-
-        <input
-          type="password"
-          placeholder="New Password"
-          className="w-full p-3 border rounded-lg mb-4"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        {error && (
-          <p className="text-red-500 text-sm mb-4 text-center">
-            {error}
-          </p>
-        )}
-
-        {success && (
-          <p className="text-green-600 text-sm mb-4 text-center">
-            Password updated successfully!
-          </p>
-        )}
-
-        <button
-          onClick={handleUpdate}
-          className="w-full bg-emerald-600 text-white py-3 rounded-lg hover:bg-emerald-700 transition"
-        >
-          Update Password
-        </button>
-
+    <div className="page-bg dot-pattern flex items-center justify-center min-h-screen">
+      <div className="w-full max-w-md px-6 anim-scalePop">
+        <div className="glass-dark rounded-3xl p-8 border border-emerald-500/15">
+          <h2 className="text-2xl font-bold text-slate-100 mb-2">Set New Password</h2>
+          <p className="text-slate-500 text-sm mb-8">Choose a strong new password.</p>
+          <div className="flex flex-col gap-4">
+            <input className="inp" type="password" placeholder="New password" value={password} onChange={e => setPassword(e.target.value)} />
+            {error && <p className="text-sm text-red-400">{error}</p>}
+            {success && <p className="text-sm text-emerald-400">Password updated! Redirecting…</p>}
+            <button onClick={handleUpdate} className="btn-teal w-full py-3.5 rounded-xl">Update Password</button>
+          </div>
+        </div>
       </div>
     </div>
   )
 }
 
-
-/* ---------------- Role Selection ---------------- */
+/* ═══════════════════════════════════════════════════════════
+   ROLE SELECTION
+═══════════════════════════════════════════════════════════ */
+const ROLES = [
+  {
+    id: "student",
+    label: "Student",
+    desc: "Access notes, doubt solver, timetables and more",
+    icon: "🎓",
+    gradient: "from-emerald-500/20 to-emerald-700/10",
+    accent: "#34d399",
+  },
+  {
+    id: "teacher",
+    label: "Teacher",
+    desc: "Generate lesson plans, question papers and assignments",
+    icon: "👨‍🏫",
+    gradient: "from-cyan-500/20 to-cyan-700/10",
+    accent: "#22d3ee",
+  },
+  {
+    id: "public",
+    label: "Public",
+    desc: "Explore biotechnology awareness and daily life science",
+    icon: "🌱",
+    gradient: "from-purple-500/20 to-purple-700/10",
+    accent: "#a78bfa",
+  },
+  {
+    id: "labs",
+    label: "Virtual Labs",
+    desc: "Simulate experiments and explore biotech interactively",
+    icon: "🔬",
+    gradient: "from-amber-500/20 to-amber-700/10",
+    accent: "#fbbf24",
+  },
+]
 
 function RoleSelection({ onEnter, userName, isAuthenticated, onLogout, onBack }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 p-10">
+    <div className="page-bg dot-pattern min-h-screen">
+      <div className="orb w-80 h-80 bg-emerald-500/8 top-[-40px] right-[-60px] anim-float-slow" />
+      <div className="orb w-64 h-64 bg-cyan-500/6 bottom-20 left-[-40px] anim-float-delay" />
 
-      {/* ---------- TOP BAR ---------- */}
-      <div className="flex justify-between items-center mb-8">
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
 
-        {/* LEFT SIDE */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition"
-          >
-            ← Back
-          </button>
-
-          <h2 className="text-4xl font-bold text-emerald-700">
-            Choose Your Role
-          </h2>
+      <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-20 pb-12">
+        <div className="text-center mb-12 anim-fadeUp">
+          <div className="badge-teal mb-5">Choose your role</div>
+          <h1 className="text-4xl font-bold text-slate-100 mb-3">
+            {isAuthenticated ? `Welcome back${userName ? `, ${userName.split(" ")[0]}` : ""}` : "Who are you?"}
+          </h1>
+          <p className="text-slate-500">Select your role to access personalised features</p>
         </div>
 
-        {/* RIGHT SIDE */}
-        {isAuthenticated && (
-          <ProfileDropdown
-            userName={userName}
-            onLogout={onLogout}
-          />
-        )}
-
-      </div>
-
-      {/* ---------- ROLE GRID ---------- */}
-      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-
-        <RoleCard
-          title="Student"
-          desc="Notes, Exams, Concept Help"
-          img="https://cdn-icons-png.flaticon.com/512/3135/3135755.png"
-          onClick={() => onEnter("student")}
-        />
-
-        <RoleCard
-          title="Teacher"
-          desc="Lesson Plans, Question Papers, Analytics"
-          img="https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
-          onClick={() => onEnter("teacher")}
-        />
-
-        <RoleCard
-          title="Public"
-          desc="Biotech Awareness, Real Life Applications"
-          img="https://cdn-icons-png.flaticon.com/512/4140/4140048.png"
-          onClick={() => onEnter("public")}
-        />
-
-        <RoleCard
-          title="Labs"
-          desc="Virtual Labs, Simulations, Experiment Guidance"
-          img="https://cdn-icons-png.flaticon.com/512/2784/2784487.png"
-          onClick={() => onEnter("labs")}
-        />
-
+        <div className="grid md:grid-cols-2 gap-5 max-w-2xl w-full stagger">
+          {ROLES.map((r) => (
+            <div
+              key={r.id}
+              onClick={() => onEnter(r.id)}
+              className="role-card p-7 anim-fadeUp group"
+            >
+              <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${r.gradient} flex items-center justify-center text-3xl mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                {r.icon}
+              </div>
+              <h3 className="text-lg font-semibold text-slate-100 mb-2">{r.label}</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">{r.desc}</p>
+              <div className="flex items-center gap-1.5 mt-5 text-xs font-semibold" style={{ color: r.accent }}>
+                Enter as {r.label} <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-
-
-/* ---------------- Role Card ---------------- */
-
-function RoleCard({ title, desc, img, onClick }) {
-  return (
-    <div className="bg-white p-8 rounded-2xl shadow-lg text-center flex flex-col items-center justify-between">
-
-      <img src={img} className="w-24 h-24 mb-4" />
-
-      <h3 className="text-2xl font-semibold text-emerald-700 mb-3">{title}</h3>
-
-      <p className="text-gray-600 mb-6">{desc}</p>
-
-      <button
-        onClick={onClick}
-        className="bg-emerald-600 text-white px-6 py-2 rounded-lg w-full"
-      >
-        Select
-      </button>
-
-    </div>
-  )
+/* ═══════════════════════════════════════════════════════════
+   ROLE DASHBOARD
+═══════════════════════════════════════════════════════════ */
+const DASHBOARDS = {
+  student: [
+    { title: "PPT Maker", icon: "📊", color: "from-violet-500/20 to-purple-700/10", tag: "AI" },
+    { title: "Notes Generator", icon: "📝", color: "from-emerald-500/20 to-emerald-700/10", tag: "AI" },
+    { title: "Summarizer", icon: "🔍", color: "from-cyan-500/20 to-cyan-700/10", tag: "AI" },
+    { title: "Previous Year Question Paper", icon: "📄", color: "from-amber-500/20 to-amber-700/10", tag: "Resource" },
+    { title: "Timetable Generator", icon: "📅", color: "from-lime-500/20 to-lime-700/10", tag: "AI" },
+    { title: "Doubt Solver", icon: "💬", color: "from-pink-500/20 to-pink-700/10", tag: "AI" },
+  ],
+  teacher: [
+    { title: "Lesson Plan Generator", icon: "📋", color: "from-cyan-500/20 to-cyan-700/10", tag: "AI" },
+    { title: "Question Paper Generator", icon: "📝", color: "from-lime-500/20 to-lime-700/10", tag: "AI" },
+    { title: "Answer Key Generator", icon: "✅", color: "from-emerald-500/20 to-emerald-700/10", tag: "AI" },
+    { title: "PPT Maker", icon: "📊", color: "from-violet-500/20 to-purple-700/10", tag: "AI" },
+    { title: "Assignment Generator", icon: "📋", color: "from-amber-500/20 to-amber-700/10", tag: "AI" },
+    { title: "Student Performance Analyzer", icon: "📈", color: "from-red-500/20 to-red-700/10", tag: "Analytics" },
+    { title: "Doubt Clearance", icon: "💡", color: "from-yellow-500/20 to-yellow-700/10", tag: "AI" },
+    { title: "Interactive Session For Students", icon: "🎓", color: "from-pink-500/20 to-pink-700/10", tag: "Live" },
+  ],
+  public: [
+    { title: "Biotech Awareness", icon: "🌿", color: "from-lime-500/20 to-lime-700/10", tag: "Learn" },
+    { title: "Biotech in Daily Life", icon: "🏠", color: "from-cyan-500/20 to-cyan-700/10", tag: "Explore" },
+    { title: "Health & Medicine Biotech", icon: "💊", color: "from-red-500/20 to-red-700/10", tag: "Health" },
+    { title: "Agriculture Biotech", icon: "🌾", color: "from-amber-500/20 to-amber-700/10", tag: "Science" },
+    { title: "News Simplifier", icon: "📰", color: "from-purple-500/20 to-purple-700/10", tag: "AI" },
+  ],
+  labs: [],
 }
 
-
-/* ---------------- Dashboard ---------------- */
+const ROLE_CONFIG = {
+  student: { label: "Student Dashboard", emoji: "🎓", accent: "emerald" },
+  teacher: { label: "Teacher Dashboard", emoji: "👨‍🏫", accent: "cyan" },
+  public: { label: "Explorer Dashboard", emoji: "🌱", accent: "purple" },
+  labs: { label: "Virtual Labs", emoji: "🔬", accent: "amber" },
+}
 
 function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userName }) {
-  const dashboards = {
-    student: [
-      { title: "PPT Maker", img: "https://cdn-icons-png.flaticon.com/512/888/888879.png" },
-      { title: "Notes Generator", img: "https://cdn-icons-png.flaticon.com/512/2921/2921222.png" },
-      { title: "Summarizer", img: "https://cdn-icons-png.flaticon.com/512/2991/2991108.png" },
-      { title: "Story Generation", img: "https://cdn-icons-png.flaticon.com/512/3145/3145765.png" },
-      { title: "Exam Preparation", img: "https://cdn-icons-png.flaticon.com/512/3135/3135755.png" },
-      { title: "Previous Year Question Paper", img: "https://cdn-icons-png.flaticon.com/512/3239/3239952.png" },
-      { title: "Timetable Generator", img: "https://cdn-icons-png.flaticon.com/512/747/747310.png" },
-      { title: "Doubt Solver", img: "https://cdn-icons-png.flaticon.com/512/4712/4712027.png" },
-      { title: "Diagram Generator", img: "https://cdn-icons-png.flaticon.com/512/2103/2103633.png" }
-    ],
+  const items = DASHBOARDS[role] || []
+  const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.student
 
-    teacher: [
-      { title: "Lesson Plan Generator", img: "https://cdn-icons-png.flaticon.com/512/3135/3135789.png" },
-      { title: "Question Paper Generator", img: "https://cdn-icons-png.flaticon.com/512/2920/2920277.png" },
-      { title: "Answer Key Generator", img: "https://cdn-icons-png.flaticon.com/512/190/190411.png" },
-      { title: "PPT Maker", img: "https://cdn-icons-png.flaticon.com/512/888/888879.png" },
-      { title: "Assignment Generator", img: "https://cdn-icons-png.flaticon.com/512/1828/1828919.png" },
-      { title: "Student Performance Analyzer", img: "https://cdn-icons-png.flaticon.com/512/1828/1828911.png" },
-      { title: "Doubt Clearance", img: "https://cdn-icons-png.flaticon.com/512/4712/4712027.png" },
-      { title: "Interactive Session For Students", img: "https://cdn-icons-png.flaticon.com/512/3063/3063825.png" }
-    ],
-
-    public: [
-      { title: "Biotech Awareness", img: "https://cdn-icons-png.flaticon.com/512/2784/2784487.png" },
-      { title: "Biotech in Daily Life", img: "https://cdn-icons-png.flaticon.com/512/2965/2965567.png" },
-      { title: "Health & Medicine Biotech", img: "https://cdn-icons-png.flaticon.com/512/2966/2966327.png" },
-      { title: "Agriculture Biotech", img: "https://cdn-icons-png.flaticon.com/512/2909/2909762.png" },
-      { title: "News Simplifier", img: "https://cdn-icons-png.flaticon.com/512/2965/2965879.png" }
-    ],
-
-    // ✅ LABS - NO CARDS, EMPTY ARRAY
-    labs: []
-  };
-
-  const items = dashboards[role] || [];
-
-  // ✅ LABS SPECIAL CASE - SHOW BIOTECH SIMULATIONS WITH DASHBOARD HEADER
-  if (role === 'labs') {
+  if (role === "labs") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 p-6">
-        {/* DASHBOARD HEADER */}
-        <div className="flex items-center gap-4 mb-8 p-6 bg-white/50 backdrop-blur-sm rounded-2xl shadow-sm">
-          <button
-            onClick={onBack}
-            className="bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition"
-          >
-            ← Back
-          </button>
-          <h2 className="text-4xl font-bold text-emerald-700">
-            LABS DASHBOARD
-          </h2>
-          {isAuthenticated && (
-            <div className="ml-auto">
-              <ProfileDropdown userName={userName} onLogout={onLogout} />
-            </div>
-          )}
-        </div>
-
-        {/* BIOTECH SIMULATIONS */}
-        <div className="max-w-7xl mx-auto">
+      <div className="page-bg min-h-screen">
+        <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+        <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
+          <div className="mb-8 anim-fadeUp">
+            <div className="badge-teal mb-3">🔬 Virtual Labs</div>
+            <h1 className="text-3xl font-bold text-slate-100">Interactive Biotechnology Labs</h1>
+          </div>
           <BiotechSimulations />
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 p-10">
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onBack}
-          className="bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition"
-        >
-          ← Back
-        </button>
-        <h2 className="text-4xl font-bold text-emerald-700">
-          {role?.toUpperCase()} DASHBOARD
-        </h2>
-      </div>
+    <div className="page-bg dot-pattern min-h-screen">
+      <div className="orb w-72 h-72 bg-emerald-500/8 top-[-30px] right-[-30px] anim-float-slow" />
 
-      {isAuthenticated && (
-        <ProfileDropdown
-          userName={userName}
-          onLogout={onLogout}
-        />
-      )}
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
 
-      <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        {items.map((item, index) => (
-          <div
-            key={index}
-            className="bg-white p-8 rounded-2xl shadow-lg text-center hover:shadow-xl transition flex flex-col items-center"
-          >
-            <img src={item.img} className="w-16 h-16 mb-4" />
-            <h3 className="text-lg font-semibold text-emerald-700 mb-4">
-              {item.title}
-            </h3>
-            <button
-              onClick={() => onOpen(item.title)}
-              className="mt-auto bg-emerald-600 text-white px-6 py-2 rounded-lg w-full hover:bg-emerald-700 transition"
-            >
-              Open
-            </button>
+      <div className="pt-28 px-6 pb-16 max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-12 anim-fadeUp">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-3xl">{cfg.emoji}</span>
+            <div className="badge-teal">{cfg.label}</div>
           </div>
-        ))}
+          <h1 className="text-4xl font-bold text-slate-100 mb-2">
+            {isAuthenticated && userName ? `Hello, ${userName.split(" ")[0]} 👋` : "Welcome!"}
+          </h1>
+          <p className="text-slate-500">Choose a feature to get started</p>
+        </div>
+
+        {/* Cards grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-5 stagger">
+          {items.map((item, i) => (
+            <button
+              key={i}
+              onClick={() => onOpen(item.title)}
+              className="gem-card rounded-2xl p-6 text-left anim-fadeUp group"
+            >
+              <div className="flex items-start justify-between mb-5">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300`}>
+                  {item.icon}
+                </div>
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider bg-white/5 px-2 py-1 rounded-full">
+                  {item.tag}
+                </span>
+              </div>
+              <h3 className="text-sm font-semibold text-slate-100 leading-snug mb-2">{item.title}</h3>
+              <div className="flex items-center gap-1 text-emerald-500/60 text-xs font-medium group-hover:text-emerald-400 transition-colors">
+                Open <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
-  );
+  )
 }
 
-/* ---------------- Gem Screen ---------------- */
-
+/* ═══════════════════════════════════════════════════════════
+   GEM SCREEN (Feature Router)
+═══════════════════════════════════════════════════════════ */
 function GemScreen({ gem, role, onBack, isAuthenticated, userName, onLogout }) {
+  if (gem === "Notes Generator") return <NotesGenerator onBack={onBack} role={role} />
+  if (gem === "Summarizer") return <Summarizer onBack={onBack} />
+  if (gem === "Doubt Solver") return <DoubtSolver onBack={onBack} />
+  if (gem === "Previous Year Question Paper") return <PreviousYearPapers onBack={onBack} />
+  if (gem === "Timetable Generator") return <TimetableGenerator onBack={onBack} />
+  if (gem === "PPT Maker") return <PptMaker onBack={onBack} />
 
-  if (gem === "Notes Generator") {
-    return (
-      <NotesGenerator
-        onBack={onBack}
-        role={role}
-      />
-    )
-  }
-
-  if (gem === "Summarizer") {
-    return (
-      <Summarizer
-        onBack={onBack}
-      />
-    )
-  }
-
-  if (gem === "Doubt Solver") {
-    return (
-      <DoubtSolver
-        onBack={onBack}
-      />
-    )
-  }
-
-  if (gem === "Previous Year Question Paper") {
-    return (
-      <PreviousYearPapers
-        onBack={onBack}
-      />
-    )
-  }
-
-  if (gem === "Timetable Generator") {
-    return (
-      <TimetableGenerator
-        onBack={onBack}
-      />
-    )
-  }
-
-  // Coming Soon – for all other dashboard cards
+  // Coming Soon
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-100 flex flex-col">
-      <div className="flex items-center justify-between px-8 py-4 bg-white/70 backdrop-blur-sm shadow-sm">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={onBack}
-            className="bg-white px-4 py-2 rounded-lg shadow hover:bg-gray-100 transition text-sm"
-          >
-            ← Back
-          </button>
-          <h2 className="text-2xl font-bold text-emerald-700">{gem}</h2>
-        </div>
-        {isAuthenticated && (
-          <ProfileDropdown userName={userName} onLogout={onLogout} />
-        )}
-      </div>
-
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center p-12 bg-white rounded-3xl shadow-xl max-w-md mx-6">
-          <div className="w-20 h-20 bg-emerald-100 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-6">
+    <div className="page-bg dot-pattern min-h-screen">
+      <div className="orb w-64 h-64 bg-emerald-500/8 top-[-30px] left-[-30px] anim-float" />
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center glass-dark rounded-3xl p-14 max-w-sm mx-6 border border-emerald-500/15 anim-scalePop">
+          <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-4xl mx-auto mb-6 anim-float">
             🚀
           </div>
-          <h3 className="text-2xl font-bold text-emerald-800 mb-3">{gem}</h3>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            This module is currently under development and will be available soon.
+          <h3 className="text-2xl font-bold text-slate-100 mb-3">{gem}</h3>
+          <p className="text-slate-500 text-sm leading-relaxed mb-6">
+            This module is under development and will be available soon.
           </p>
-          <div className="mt-6 inline-block bg-emerald-50 text-emerald-700 text-xs font-semibold px-4 py-2 rounded-full border border-emerald-200">
-            Coming Soon
-          </div>
+          <div className="badge-teal mx-auto w-fit">Coming Soon</div>
         </div>
       </div>
     </div>

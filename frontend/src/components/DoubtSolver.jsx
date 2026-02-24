@@ -7,12 +7,12 @@ const CLASS_LEVELS = ["general", "9", "10", "11", "12"]
 
 function TypingIndicator() {
     return (
-        <div className="flex items-center gap-1 px-4 py-3 bg-white border border-gray-100 rounded-2xl rounded-tl-sm shadow-sm w-fit">
-            <span className="text-xs text-indigo-400 mr-1">Finding answer from textbook</span>
+        <div className="typing-indicator">
+            <span className="text-xs text-emerald-400 mr-1">Finding answer from textbook</span>
             {[0, 1, 2].map(i => (
                 <span
                     key={i}
-                    className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce"
+                    className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"
                     style={{ animationDelay: `${i * 0.15}s` }}
                 />
             ))}
@@ -95,50 +95,38 @@ export default function DoubtSolver({ onBack }) {
         }
     }
 
-    const statusColor = backendReady === null
-        ? "bg-gray-100 text-gray-500"
-        : backendReady
-            ? (indexReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")
-            : "bg-red-100 text-red-600"
-
-    const dotColor = backendReady === null
-        ? "bg-gray-400"
-        : backendReady
-            ? (indexReady ? "bg-emerald-500 animate-pulse" : "bg-amber-400")
-            : "bg-red-400"
-
-    const statusText = backendReady === null
-        ? "Connecting..."
-        : backendReady
-            ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed")
-            : "Server Offline"
+    const statusClass = backendReady === null ? "status-badge loading" :
+        backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"
+    const dotClass = backendReady === null ? "bg-slate-400" :
+        backendReady ? (indexReady ? "bg-emerald-400 animate-pulse" : "bg-amber-400") : "bg-red-400"
+    const statusText = backendReady === null ? "Connecting..." :
+        backendReady ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed") : "Server Offline"
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 flex flex-col">
-
+        <div className="page-dark flex flex-col">
             {/* ─ Header ─ */}
-            <header className="bg-white/80 backdrop-blur-sm border-b border-indigo-100 px-6 py-4 flex items-center justify-between shadow-sm">
+            <header className="feature-header flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
                         onClick={onBack}
-                        className="text-sm text-gray-500 hover:text-indigo-700 transition flex items-center gap-1"
+                        className="text-sm text-slate-500 hover:text-emerald-400 transition flex items-center gap-1"
                     >
                         ← Back
                     </button>
                     <div>
-                        <h1 className="text-xl font-bold text-indigo-800">Doubt Solver</h1>
-                        <p className="text-xs text-gray-500">Answers strictly from your uploaded Biotechnology textbooks</p>
+                        <h1 className="text-xl font-bold text-slate-100">Doubt Solver</h1>
+                        <p className="text-xs text-slate-500">Answers strictly from your uploaded Biotechnology textbooks</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
                     {/* Class level selector */}
                     <div className="flex items-center gap-2">
-                        <label className="text-xs font-medium text-gray-600">Class:</label>
+                        <label className="text-xs font-medium text-slate-500">Class:</label>
                         <select
                             value={classLevel}
                             onChange={e => setClassLevel(e.target.value)}
-                            className="text-sm border border-indigo-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-indigo-700 font-medium"
+                            className="text-sm border border-emerald-500/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-[#0c1a2e] text-emerald-400 font-medium"
                         >
                             {CLASS_LEVELS.map(l => (
                                 <option key={l} value={l}>
@@ -149,8 +137,8 @@ export default function DoubtSolver({ onBack }) {
                     </div>
 
                     {/* Status badge */}
-                    <div className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                    <div className={statusClass}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
                         {statusText}
                     </div>
                 </div>
@@ -158,34 +146,31 @@ export default function DoubtSolver({ onBack }) {
 
             {/* ─ Chat Panel ─ */}
             <div className="flex flex-1 overflow-hidden p-4 md:p-6">
-                <div className="flex flex-col flex-1 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="flex flex-col flex-1 feature-panel overflow-hidden">
 
                     {/* Messages */}
                     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                         {messages.map((msg, i) => (
                             <div key={i} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
                                 {msg.from === "bot" && (
-                                    <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0 mt-0.5">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-[#060d18] text-xs font-bold mr-2 flex-shrink-0 mt-0.5">
                                         ?
                                     </div>
                                 )}
-                                <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm flex flex-col ${msg.from === "user"
-                                    ? "bg-indigo-600 text-white rounded-tr-sm text-sm"
-                                    : "bg-gray-50 border border-gray-100 rounded-tl-sm"
-                                    }`}>
+                                <div className={msg.from === "user" ? "chat-bubble-user" : "chat-bubble-bot"}>
                                     {msg.from === "bot" ? (
                                         <>
                                             <div
-                                                className="text-sm text-gray-800 prose prose-sm max-w-none leading-relaxed [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4 [&>h3]:text-indigo-800 [&>h3]:font-bold [&>h3]:mt-3 [&>h3]:mb-1 [&>p>strong]:text-indigo-900"
+                                                className="text-sm prose-dark prose prose-sm max-w-none leading-relaxed [&>ul]:list-disc [&>ul]:ml-4 [&>ol]:list-decimal [&>ol]:ml-4"
                                                 dangerouslySetInnerHTML={{ __html: marked.parse(msg.text) }}
                                             />
                                             {/* Source citations */}
                                             {msg.sources && msg.sources.length > 0 && (
-                                                <div className="mt-3 pt-2 border-t border-gray-200">
-                                                    <p className="text-xs font-semibold text-indigo-600 mb-1">📚 Sources from textbook:</p>
+                                                <div className="mt-3 pt-2 border-t border-emerald-500/15">
+                                                    <p className="text-xs font-semibold text-emerald-400 mb-1">📚 Sources from textbook:</p>
                                                     <ul className="space-y-0.5">
                                                         {msg.sources.map((src, si) => (
-                                                            <li key={si} className="text-xs text-gray-500 italic">• {src}</li>
+                                                            <li key={si} className="text-xs text-slate-500 italic">• {src}</li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -200,7 +185,7 @@ export default function DoubtSolver({ onBack }) {
 
                         {loading && (
                             <div className="flex justify-start">
-                                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold mr-2 flex-shrink-0">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-[#060d18] text-xs font-bold mr-2 flex-shrink-0">
                                     ?
                                 </div>
                                 <TypingIndicator />
@@ -211,7 +196,7 @@ export default function DoubtSolver({ onBack }) {
                     </div>
 
                     {/* Input bar */}
-                    <div className="p-4 border-t border-gray-100 bg-white">
+                    <div className="p-4 border-t border-emerald-500/10">
                         {/* Quick suggestion chips */}
                         <div className="flex flex-wrap gap-2 mb-3">
                             {["What is genetic engineering?", "Explain PCR process", "What is CRISPR?"].map(suggestion => (
@@ -219,7 +204,7 @@ export default function DoubtSolver({ onBack }) {
                                     key={suggestion}
                                     onClick={() => sendQuestion(suggestion)}
                                     disabled={loading}
-                                    className="text-xs px-3 py-1.5 rounded-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition disabled:opacity-40"
+                                    className="text-xs px-3 py-1.5 rounded-full border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 transition disabled:opacity-40"
                                 >
                                     {suggestion}
                                 </button>
@@ -234,17 +219,17 @@ export default function DoubtSolver({ onBack }) {
                                 onChange={e => setInput(e.target.value)}
                                 onKeyDown={handleKeyDown}
                                 placeholder="Ask your doubt from the textbook... (e.g. What is recombinant DNA?)"
-                                className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-gray-50 placeholder-gray-400"
+                                className="flex-1 resize-none inp rounded-xl"
                             />
                             <button
                                 onClick={() => sendQuestion(input)}
                                 disabled={!input.trim() || loading}
-                                className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-5 py-3 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 font-medium text-sm"
+                                className="btn-teal rounded-xl px-5 py-3 transition disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 text-sm"
                             >
                                 Ask
                             </button>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1.5 ml-1">Press Enter to send · Shift+Enter for new line</p>
+                        <p className="text-xs text-slate-600 mt-1.5 ml-1">Press Enter to send · Shift+Enter for new line</p>
                     </div>
                 </div>
             </div>

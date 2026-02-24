@@ -6,10 +6,10 @@ const CLASS_LEVELS = ["9", "10", "11", "12"]
 const DAILY_HOURS_OPTIONS = [1, 2, 3, 4, 5, 6]
 
 const TYPE_STYLES = {
-    study: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800", dot: "bg-blue-500", label: "Study" },
-    revision: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-800", dot: "bg-yellow-500", label: "Revision" },
-    mock_test: { bg: "bg-red-100", border: "border-red-300", text: "text-red-800", dot: "bg-red-500", label: "Mock Test" },
-    rest: { bg: "bg-gray-100", border: "border-gray-200", text: "text-gray-500", dot: "bg-gray-400", label: "Rest" },
+    study: { bg: "bg-blue-500/15", border: "border-blue-500/25", text: "text-blue-400", dot: "bg-blue-400", label: "Study" },
+    revision: { bg: "bg-yellow-500/15", border: "border-yellow-500/25", text: "text-yellow-400", dot: "bg-yellow-400", label: "Revision" },
+    mock_test: { bg: "bg-red-500/15", border: "border-red-500/25", text: "text-red-400", dot: "bg-red-400", label: "Mock Test" },
+    rest: { bg: "bg-slate-500/10", border: "border-slate-500/20", text: "text-slate-500", dot: "bg-slate-400", label: "Rest" },
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -85,42 +85,42 @@ function TimetableForm({ onGenerate }) {
     }
 
     return (
-        <div className="w-full max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col gap-6">
+        <div className="w-full max-w-2xl mx-auto card-dark p-8 flex flex-col gap-6">
             <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-1">Tell us about your exam</h2>
-                <p className="text-xs text-gray-500">We'll generate a personalised day-by-day study plan.</p>
+                <h2 className="text-lg font-bold text-slate-100 mb-1">Tell us about your exam</h2>
+                <p className="text-xs text-slate-500">We'll generate a personalised day-by-day study plan.</p>
             </div>
 
             {/* Exam name */}
             <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">Exam Name</label>
+                <label className="text-sm font-medium text-slate-300">Exam Name</label>
                 <input
                     type="text"
                     value={examName}
                     onChange={e => setExamName(e.target.value)}
                     placeholder="e.g. CBSE Class 11 Biotechnology Final Exam"
-                    className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-gray-50"
+                    className="inp"
                 />
             </div>
 
             {/* Exam date + class level */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Exam Date</label>
+                    <label className="text-sm font-medium text-slate-300">Exam Date</label>
                     <input
                         type="date"
                         value={examDate}
                         min={today}
                         onChange={e => setExamDate(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-gray-50"
+                        className="inp"
                     />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-medium text-gray-700">Class Level</label>
+                    <label className="text-sm font-medium text-slate-300">Class Level</label>
                     <select
                         value={classLevel}
                         onChange={e => setClassLevel(e.target.value)}
-                        className="border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 bg-gray-50"
+                        className="inp"
                     >
                         {CLASS_LEVELS.map(l => <option key={l} value={l}>Class {l}</option>)}
                     </select>
@@ -129,13 +129,15 @@ function TimetableForm({ onGenerate }) {
 
             {/* Daily hours */}
             <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-gray-700">Daily Study Hours Available</label>
+                <label className="text-sm font-medium text-slate-300">Daily Study Hours Available</label>
                 <div className="flex gap-2 flex-wrap">
                     {DAILY_HOURS_OPTIONS.map(h => (
                         <button
                             key={h}
                             onClick={() => setDailyHours(h)}
-                            className={`w-12 h-10 rounded-xl text-sm font-semibold border transition ${dailyHours === h ? "bg-teal-600 text-white border-teal-600 shadow" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-teal-50"}`}
+                            className={`w-12 h-10 rounded-xl text-sm font-semibold border transition ${dailyHours === h
+                                ? "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-500/20"
+                                : "bg-white/5 border-emerald-500/15 text-slate-400 hover:bg-emerald-500/10"}`}
                         >
                             {h}h
                         </button>
@@ -143,12 +145,12 @@ function TimetableForm({ onGenerate }) {
                 </div>
             </div>
 
-            {error && <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-4 py-2">{error}</p>}
+            {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2">{error}</p>}
 
             <button
                 onClick={handleGenerate}
                 disabled={loading}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-sm"
+                className="w-full btn-teal py-3.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
                 {loading ? "🤖 AI is creating your plan..." : "✨ Generate My Study Timetable"}
             </button>
@@ -169,7 +171,6 @@ function CalendarGrid({ plan, examName, onReset }) {
         localStorage.setItem("timetable_completed", JSON.stringify(next))
     }
 
-    // Build month groups
     const byMonth = {}
     plan.forEach(day => {
         const d = new Date(day.date + "T00:00:00")
@@ -184,63 +185,60 @@ function CalendarGrid({ plan, examName, onReset }) {
     return (
         <div className="w-full flex flex-col gap-6">
             {/* Progress bar + actions */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
+            <div className="card-dark p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-semibold text-gray-800">📅 {examName}</p>
-                        <p className="text-xs text-gray-500">{plan.length} days · {doneCount} completed</p>
+                        <p className="text-sm font-semibold text-slate-100">📅 {examName}</p>
+                        <p className="text-xs text-slate-500">{plan.length} days · {doneCount} completed</p>
                     </div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => downloadTimetablePDF(plan, examName)}
-                            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition"
+                            className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition shadow-sm shadow-emerald-500/20"
                         >
                             ⬇ Download PDF
                         </button>
                         <button
                             onClick={onReset}
-                            className="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition"
+                            className="text-xs bg-white/5 border border-emerald-500/15 text-slate-400 px-3 py-1.5 rounded-lg hover:bg-white/10 transition"
                         >
                             ↺ New Plan
                         </button>
                     </div>
                 </div>
                 {/* Progress bar */}
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                <div className="w-full bg-white/5 rounded-full h-2.5">
                     <div
-                        className="bg-teal-500 h-2.5 rounded-full transition-all duration-500"
+                        className="bg-emerald-500 h-2.5 rounded-full transition-all duration-500"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
-                <p className="text-xs text-gray-500">{progress}% complete</p>
+                <p className="text-xs text-slate-500">{progress}% complete</p>
 
                 {/* Legend */}
                 <div className="flex gap-3 flex-wrap mt-1">
                     {Object.entries(TYPE_STYLES).map(([type, s]) => (
-                        <div key={type} className="flex items-center gap-1.5 text-xs text-gray-600">
+                        <div key={type} className="flex items-center gap-1.5 text-xs text-slate-400">
                             <span className={`w-2 h-2 rounded-full ${s.dot}`} /> {s.label}
                         </div>
                     ))}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <span className="w-2 h-2 rounded-full bg-teal-500" /> Done
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" /> Done
                     </div>
                 </div>
             </div>
 
             {/* Month grids */}
             {Object.entries(byMonth).map(([month, days]) => {
-                // Pad grid to start on correct weekday
                 const firstDow = days[0].dayOfWeek
                 return (
-                    <div key={month} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                        <h3 className="text-sm font-bold text-gray-700 mb-3">{month}</h3>
-                        {/* Day-of-week headers */}
+                    <div key={month} className="card-dark p-5">
+                        <h3 className="text-sm font-bold text-slate-300 mb-3">{month}</h3>
                         <div className="grid grid-cols-7 mb-1">
                             {DAY_LABELS.map(d => (
-                                <div key={d} className="text-center text-xs font-medium text-gray-400 py-1">{d}</div>
+                                <div key={d} className="text-center text-xs font-medium text-slate-600 py-1">{d}</div>
                             ))}
                         </div>
-                        {/* Grid */}
                         <div className="grid grid-cols-7 gap-1">
                             {Array.from({ length: firstDow }).map((_, i) => <div key={`pad-${i}`} />)}
                             {days.map(day => {
@@ -252,14 +250,14 @@ function CalendarGrid({ plan, examName, onReset }) {
                                         key={day.date}
                                         onClick={() => setSelected(isSelected ? null : day)}
                                         className={`relative rounded-xl p-1.5 text-center transition border ${done
-                                            ? "bg-teal-100 border-teal-300"
+                                            ? "bg-emerald-500/15 border-emerald-500/30"
                                             : `${style.bg} ${style.border}`
-                                            } ${isSelected ? "ring-2 ring-offset-1 ring-teal-500" : ""} hover:opacity-80`}
+                                            } ${isSelected ? "ring-2 ring-offset-1 ring-emerald-500 ring-offset-[#0a1628]" : ""} hover:opacity-80`}
                                     >
-                                        <p className={`text-xs font-bold leading-none ${done ? "text-teal-700" : style.text}`}>
+                                        <p className={`text-xs font-bold leading-none ${done ? "text-emerald-400" : style.text}`}>
                                             {day.dateObj.getDate()}
                                         </p>
-                                        <p className={`text-[9px] leading-tight mt-0.5 truncate ${done ? "text-teal-600" : style.text}`}>
+                                        <p className={`text-[9px] leading-tight mt-0.5 truncate ${done ? "text-emerald-500" : style.text}`}>
                                             {done ? "✓ Done" : day.activity_type === "mock_test" ? "Mock" : day.activity_type === "rest" ? "Rest" : "Study"}
                                         </p>
                                     </button>
@@ -272,22 +270,22 @@ function CalendarGrid({ plan, examName, onReset }) {
 
             {/* Day detail panel */}
             {selected && (
-                <div className={`rounded-2xl border p-5 shadow-sm ${(TYPE_STYLES[selected.activity_type] || TYPE_STYLES.study).bg} ${(TYPE_STYLES[selected.activity_type] || TYPE_STYLES.study).border}`}>
+                <div className={`card-dark p-5 ${(TYPE_STYLES[selected.activity_type] || TYPE_STYLES.study).border}`}>
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
                                 {new Date(selected.date + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
                             </p>
                             <h3 className={`text-base font-bold mt-1 ${(TYPE_STYLES[selected.activity_type] || TYPE_STYLES.study).text}`}>
                                 {selected.topic}
                             </h3>
-                            <p className="text-sm text-gray-700 mt-1">{selected.description}</p>
+                            <p className="text-sm text-slate-400 mt-1">{selected.description}</p>
                         </div>
                         <button
                             onClick={() => toggleComplete(selected.date)}
                             className={`ml-4 flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition ${completed[selected.date]
-                                ? "bg-teal-600 text-white hover:bg-teal-700"
-                                : "bg-white border border-gray-300 text-gray-700 hover:bg-teal-50"
+                                ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-lg shadow-emerald-500/20"
+                                : "bg-white/5 border border-emerald-500/20 text-slate-300 hover:bg-emerald-500/10"
                                 }`}
                         >
                             {completed[selected.date] ? "✓ Marked Done" : "Mark as Done"}
@@ -305,18 +303,18 @@ export default function TimetableGenerator({ onBack }) {
     const [examName, setExamName] = useState("")
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-teal-50 via-cyan-50 to-emerald-50 flex flex-col">
+        <div className="page-dark flex flex-col">
             {/* Header */}
-            <header className="bg-white/80 backdrop-blur-sm border-b border-teal-100 px-6 py-4 flex items-center gap-4 shadow-sm">
+            <header className="feature-header flex items-center gap-4">
                 <button
                     onClick={onBack}
-                    className="text-sm text-gray-500 hover:text-teal-700 transition flex items-center gap-1"
+                    className="text-sm text-slate-500 hover:text-emerald-400 transition flex items-center gap-1"
                 >
                     ← Back
                 </button>
                 <div>
-                    <h1 className="text-xl font-bold text-teal-800">AI Timetable Generator</h1>
-                    <p className="text-xs text-gray-500">Personalised day-by-day study plan with progress tracker</p>
+                    <h1 className="text-xl font-bold text-slate-100">AI Timetable Generator</h1>
+                    <p className="text-xs text-slate-500">Personalised day-by-day study plan with progress tracker</p>
                 </div>
             </header>
 

@@ -42,12 +42,12 @@ function downloadNotesPDF(notes) {
 // ─── Typing indicator ──────────────────────────────────────────────────────────
 function TypingIndicator() {
     return (
-        <div className="flex items-center gap-1 px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm w-fit mt-4 mx-auto">
-            <span className="text-xs text-emerald-800 mr-1 font-medium">Analyzing against Textbook Syllabus</span>
+        <div className="typing-indicator mx-auto mt-4">
+            <span className="text-xs text-emerald-400 mr-1 font-medium">Analyzing against Textbook Syllabus</span>
             {[0, 1, 2].map(i => (
                 <span
                     key={i}
-                    className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"
+                    className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce"
                     style={{ animationDelay: `${i * 0.15}s` }}
                 />
             ))}
@@ -117,15 +117,15 @@ export default function Summarizer({ onBack }) {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex flex-col">
-            <header className="bg-white/80 backdrop-blur-sm border-b border-emerald-100 px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="page-dark flex flex-col">
+            <header className="feature-header flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="text-sm text-gray-500 hover:text-emerald-700 transition flex items-center gap-1">
+                    <button onClick={onBack} className="text-sm text-slate-500 hover:text-emerald-400 transition flex items-center gap-1">
                         ← Back
                     </button>
                     <div>
-                        <h1 className="text-xl font-bold text-emerald-800">Verified Summarizer</h1>
-                        <p className="text-xs text-gray-500">Paste notes or upload a PDF. Output checked strictly against Class 9-12 Syllabus.</p>
+                        <h1 className="text-xl font-bold text-slate-100">Verified Summarizer</h1>
+                        <p className="text-xs text-slate-500">Paste notes or upload a PDF. Output checked strictly against Class 9-12 Syllabus.</p>
                     </div>
                 </div>
             </header>
@@ -133,11 +133,11 @@ export default function Summarizer({ onBack }) {
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden p-4 md:p-6 gap-6">
 
                 {/* ─ LEFT: Input Panel ─ */}
-                <div className="w-full md:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 gap-4">
-                    <h2 className="text-lg font-semibold text-emerald-800">Provide Notes</h2>
+                <div className="w-full md:w-1/2 flex flex-col feature-panel overflow-hidden p-6 gap-4">
+                    <h2 className="text-lg font-semibold text-emerald-400">Provide Notes</h2>
 
                     <textarea
-                        className="flex-1 w-full resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-gray-50 placeholder-gray-400"
+                        className="flex-1 w-full resize-none inp rounded-xl"
                         placeholder="Paste your notes here to be summarized..."
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
@@ -155,21 +155,21 @@ export default function Summarizer({ onBack }) {
                         {!selectedFile ? (
                             <button
                                 onClick={() => fileInputRef.current.click()}
-                                className="w-full py-4 border-2 border-dashed border-emerald-200 hover:border-emerald-400 rounded-xl text-emerald-700 font-medium text-sm transition bg-emerald-50/50 flex flex-col items-center justify-center gap-1"
+                                className="w-full py-4 border-2 border-dashed border-emerald-500/25 hover:border-emerald-500/50 rounded-xl text-emerald-400 font-medium text-sm transition bg-emerald-500/5 flex flex-col items-center justify-center gap-1"
                             >
                                 <span className="text-xl">📄</span>
                                 <span>Or Upload a PDF Document</span>
                             </button>
                         ) : (
-                            <div className="w-full py-3 px-4 border border-emerald-300 rounded-xl bg-emerald-50 flex items-center justify-between">
-                                <span className="text-sm text-emerald-800 font-medium truncate max-w-[80%]">📄 {selectedFile.name}</span>
-                                <button onClick={removeFile} className="text-xs text-red-500 hover:text-red-700 font-bold">✕ Remove</button>
+                            <div className="w-full py-3 px-4 border border-emerald-500/30 rounded-xl bg-emerald-500/10 flex items-center justify-between">
+                                <span className="text-sm text-emerald-300 font-medium truncate max-w-[80%]">📄 {selectedFile.name}</span>
+                                <button onClick={removeFile} className="text-xs text-red-400 hover:text-red-300 font-bold">✕ Remove</button>
                             </div>
                         )}
                     </div>
 
                     {errorMsg && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
                             {errorMsg}
                         </div>
                     )}
@@ -177,23 +177,23 @@ export default function Summarizer({ onBack }) {
                     <button
                         onClick={handleSummarize}
                         disabled={loading || (!inputText.trim() && !selectedFile)}
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-5 py-3.5 transition disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm text-sm"
+                        className="w-full btn-teal rounded-xl px-5 py-3.5 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                         {loading ? "Verifying Context & Summarizing..." : "Summarize Notes"}
                     </button>
                 </div>
 
                 {/* ─ RIGHT: Output Panel ─ */}
-                <div className="w-full md:w-1/2 flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="w-full md:w-1/2 flex flex-col feature-panel overflow-hidden">
+                    <div className="px-6 py-4 border-b border-emerald-500/10 flex items-center justify-between">
                         <div>
-                            <h2 className="font-semibold text-gray-800 text-sm">Summary Output</h2>
-                            <p className="text-xs text-emerald-600 font-medium">Verified against Syllabus</p>
+                            <h2 className="font-semibold text-slate-200 text-sm">Summary Output</h2>
+                            <p className="text-xs text-emerald-400 font-medium">Verified against Syllabus</p>
                         </div>
                         {summary && !summary.includes("Cannot summarize") && (
                             <button
                                 onClick={() => downloadNotesPDF(summary)}
-                                className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition"
+                                className="flex items-center gap-1.5 text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-500 transition shadow-sm shadow-emerald-500/20"
                             >
                                 <span>⬇</span> Download Note
                             </button>
@@ -206,19 +206,18 @@ export default function Summarizer({ onBack }) {
                                 <TypingIndicator />
                             </div>
                         ) : summary ? (
-                            <div className={`prose prose-sm max-w-none leading-relaxed
-                                ${summary.includes("Cannot summarize") ? "text-red-700 bg-red-50 p-6 rounded-xl border border-red-100" : "text-gray-800 prose-emerald [&>ul]:list-disc [&>ul]:ml-4 [&>h3]:text-emerald-800 [&>h3]:mt-4 [&>p>strong]:text-emerald-900"}
-                            `}
+                            <div className={`prose prose-sm max-w-none leading-relaxed prose-dark
+                                ${summary.includes("Cannot summarize") ? "text-red-400 bg-red-500/10 p-6 rounded-xl border border-red-500/15" : "[&>ul]:list-disc [&>ul]:ml-4 [&>h3]:mt-4"}`}
                                 dangerouslySetInnerHTML={{ __html: marked.parse(summary) }}
                             />
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 gap-3">
-                                <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center text-3xl opacity-70">
+                            <div className="h-full flex flex-col items-center justify-center text-center text-slate-600 gap-3">
+                                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/15 flex items-center justify-center text-3xl opacity-70">
                                     ✂️
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500">No output generated yet</p>
-                                    <p className="text-xs mt-1">Paste your notes or upload a PDF on the left</p>
+                                    <p className="text-sm font-medium text-slate-500">No output generated yet</p>
+                                    <p className="text-xs mt-1 text-slate-600">Paste your notes or upload a PDF on the left</p>
                                 </div>
                             </div>
                         )}
