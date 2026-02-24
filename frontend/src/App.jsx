@@ -41,8 +41,8 @@ function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setIsAuthenticated(false)
-    setUserName("")
     setUserId(null)
+    setUserName("")
     setRole(null)
     setSelectedGem(null)
     setPage("landing")
@@ -59,8 +59,8 @@ function App() {
         onSuccess={async () => {
           const { data } = await supabase.auth.getUser()
           setIsAuthenticated(true)
-          setUserName(data.user.user_metadata?.full_name || "")
           setUserId(data.user.id)
+          setUserName(data.user.user_metadata?.full_name || "")
           setPage("roles")
         }}
       />
