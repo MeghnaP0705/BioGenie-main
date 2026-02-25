@@ -8,6 +8,8 @@ import PreviousYearPapers from "./components/PreviousYearPapers"
 import TimetableGenerator from "./components/TimetableGenerator"
 import PptMaker from "./components/PptMaker"
 import LessonPlanGenerator from "./components/LessonPlanGenerator"
+import QuestionPaperGenerator from "./components/QuestionPaperGenerator"
+import AnswerKeyGenerator from "./components/AnswerKeyGenerator"
 
 /* ═══════════════════════════════════════════════════════════
    APP ROOT
@@ -583,10 +585,6 @@ const DASHBOARDS = {
     { title: "Question Paper Generator", icon: "📝", color: "from-lime-500/20 to-lime-700/10", tag: "AI" },
     { title: "Answer Key Generator", icon: "✅", color: "from-emerald-500/20 to-emerald-700/10", tag: "AI" },
     { title: "PPT Maker", icon: "📊", color: "from-violet-500/20 to-purple-700/10", tag: "AI" },
-    { title: "Assignment Generator", icon: "📋", color: "from-amber-500/20 to-amber-700/10", tag: "AI" },
-    { title: "Student Performance Analyzer", icon: "📈", color: "from-red-500/20 to-red-700/10", tag: "Analytics" },
-    { title: "Doubt Clearance", icon: "💡", color: "from-yellow-500/20 to-yellow-700/10", tag: "AI" },
-    { title: "Interactive Session For Students", icon: "🎓", color: "from-pink-500/20 to-pink-700/10", tag: "Live" },
   ],
   public: [
     { title: "Biotech Awareness", icon: "🌿", color: "from-lime-500/20 to-lime-700/10", tag: "Learn" },
@@ -682,6 +680,8 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLog
   if (gem === "Timetable Generator") return <TimetableGenerator onBack={onBack} />
   if (gem === "PPT Maker") return <PptMaker onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
   if (gem === "Lesson Plan Generator") return <LessonPlanGenerator onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
+  if (gem === "Question Paper Generator") return <QuestionPaperGenerator onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
+  if (gem === "Answer Key Generator") return <AnswerKeyGenerator onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
 
   // Coming Soon
   return (

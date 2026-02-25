@@ -122,7 +122,7 @@ export default function ChatHistorySidebar({
                                         {items.map(session => (
                                             <div
                                                 key={session.id}
-                                                onClick={() => { onSelectSession(session); setCollapsed(true) }}
+                                                onClick={() => { onSelectSession(session); if (window.innerWidth <= 768) setCollapsed(true) }}
                                                 className={`session-item group ${activeSessionId === session.id ? "session-item-active" : ""}`}
                                             >
                                                 <div className="flex-1 min-w-0">

@@ -9,8 +9,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 
-from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse, PptRequest, LessonPlanRequest, LessonPlanResponse
-from rag_engine import query_notes, summarize_notes, generate_timetable, generate_ppt, generate_lesson_plan
+from models import (AskRequest, AskResponse, HealthResponse, SummarizeResponse,
+                    TimetableRequest, TimetableResponse, PptRequest,
+                    LessonPlanRequest, LessonPlanResponse,
+                    QuestionPaperRequest, QuestionPaperResponse, AnswerKeyResponse)
+from rag_engine import (query_notes, summarize_notes, generate_timetable,
+                        generate_ppt, generate_lesson_plan,
+                        generate_question_paper, generate_answer_key)
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv(override=True)
@@ -177,3 +182,67 @@ async def lesson_plan_endpoint(request: LessonPlanRequest):
         return LessonPlanResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lesson plan generation failed: {str(e)}")
+
+
+@app.post("/generate-question-paper", response_model=QuestionPaperResponse)
+async def question_paper_endpoint(request: QuestionPaperRequest):
+    """
+    Teacher endpoint: generates a question paper / question bank
+    from textbook content at the specified marks level.
+    """
+    if not request.topic.strip():
+        raise HTTPException(status_code=400, detail="Topic cannot be empty.")
+
+    try:
+        result = generate_question_paper(
+            topic=request.topic.strip(),
+            class_level=request.class_level or "general",
+            marks_per_question=request.marks_per_question or 2,
+            num_questions=request.num_questions or 10,
+        )
+        return QuestionPaperResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Question paper generation failed: {str(e)}")
+
+
+@app.post("/generate-answer-key", response_model=AnswerKeyResponse)
+async def answer_key_endpoint(
+    text: str = Form(""),
+    file: UploadFile = File(None),
+    class_level: str = Form("general"),
+    marks_per_question: int = Form(2),
+):
+    """
+    Teacher endpoint: generates answer key from pasted questions or uploaded PDF.
+    Answers are generated strictly from indexed textbooks.
+    """
+    combined_text = text.strip()
+
+    if file:
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+        try:
+            pdf_bytes = await file.read()
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            extracted = []
+            for page in doc:
+                page_text = page.get_text("text")
+                if page_text.strip():
+                    extracted.append(page_text)
+            doc.close()
+            combined_text += "\n" + "\n".join(extracted)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process PDF: {str(e)}")
+
+    if not combined_text.strip():
+        raise HTTPException(status_code=400, detail="No questions provided. Paste text or upload a PDF.")
+
+    try:
+        result = generate_answer_key(
+            questions_text=combined_text,
+            class_level=class_level,
+            marks_per_question=marks_per_question,
+        )
+        return AnswerKeyResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Answer key generation failed: {str(e)}")

@@ -476,6 +476,247 @@ OUTPUT FORMAT:
     }
 
 
+def generate_question_paper(topic: str, class_level: str,
+                            marks_per_question: int, num_questions: int) -> dict:
+    """
+    Generates a question paper / question bank from textbook content.
+    Questions are formatted according to the marks level:
+      1-mark  → MCQ / one-word / fill-in-the-blank
+      2-mark  → short answer (2-3 sentences)
+      5-mark  → descriptive / diagram-based
+      10-mark → long answer / essay-type
+    """
+    import time as _time
+
+    if is_prompt_injection(topic):
+        return {"questions": "⚠️ This request could not be processed.", "sources": []}
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    # ── 1. Extract core topic ────────────────────────────────────────────────
+    llm_extract = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.0, api_key=api_key)
+    try:
+        resp = llm_extract.invoke([
+            SystemMessage(content=(
+                "Extract ONLY the core biotechnology topic name from the user request. "
+                "Return ONLY the topic name. No explanation, no quotes.\n"
+                "Examples:\n"
+                "  'Generate questions on tissues' → Tissues\n"
+                "  'PCR questions for class 12' → PCR\n"
+                "  'DNA Replication' → DNA Replication\n"
+            )),
+            HumanMessage(content=topic),
+        ])
+        extracted = resp.content.strip()
+        if not extracted or len(extracted) > 100:
+            extracted = topic
+    except Exception:
+        extracted = topic
+
+    # ── 2. Embed & retrieve ──────────────────────────────────────────────────
+    try:
+        embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        query_embedding = embeddings_model.embed_query(extracted)
+    except Exception as e:
+        raise RuntimeError(f"Embedding error: {e}")
+
+    try:
+        supabase = get_supabase_client()
+        result = supabase.rpc("match_rag_chunks", {
+            "query_embedding": query_embedding,
+            "match_threshold": 0.25,
+            "match_count": 15,
+            "p_class_level": class_level if class_level != "general" else None,
+        }).execute()
+        chunks = result.data or []
+    except Exception as e:
+        raise RuntimeError(f"Supabase retrieval error: {e}")
+
+    if not chunks:
+        raise RuntimeError(f"No textbook content found for '{extracted}' in Class {class_level}.")
+
+    context_parts, sources = [], []
+    for doc in chunks:
+        context_parts.append(doc["content_chunk"])
+        src = f"{doc.get('chapter', 'Unknown')} ({doc.get('source_pdf', '')})"
+        if src not in sources:
+            sources.append(src)
+    context = "\n\n---\n\n".join(context_parts)
+
+    # ── 3. Marks-level format guide ──────────────────────────────────────────
+    marks_guide = {
+        1: "1-mark questions: MCQs (with 4 options, do NOT reveal the correct answer), one-word answers, fill-in-the-blanks, or true/false",
+        2: "2-mark questions: Short-answer questions (do NOT provide answers)",
+        5: "5-mark questions: Descriptive / diagram-based questions (do NOT provide answers)",
+        10: "10-mark questions: Long-answer / essay-type questions (do NOT provide answers)",
+    }
+    fmt = marks_guide.get(marks_per_question, marks_guide[2])
+
+    # ── 4. LLM call ──────────────────────────────────────────────────────────
+    prompt = f"""You are an expert Biotechnology exam paper setter for Class {class_level}.
+
+Using ONLY the textbook content below, generate exactly {num_questions} questions on the topic: "{extracted}"
+
+Question type: **{marks_per_question}-mark questions**
+Format: {fmt}
+
+TEXTBOOK CONTENT:
+{context}
+
+RULES:
+1. Use ONLY facts from the textbook content. Do NOT hallucinate.
+2. Generate exactly {num_questions} questions.
+3. Number each question clearly (Q1, Q2, …).
+4. For 1-mark MCQs, provide 4 options (a/b/c/d) but do NOT reveal or mark the correct answer.
+5. Do NOT provide answers, model answers, solutions, or hints for ANY question. Generate ONLY the questions.
+6. Ensure questions cover different sub-topics within the given topic for variety.
+7. Include the marks allocation next to each question, e.g., [1 Mark], [2 Marks], etc.
+8. Use rich Markdown formatting: bold for key terms, headers for sections.
+9. At the top, include a header with topic, class, total marks.
+
+OUTPUT FORMAT:
+## 📝 Question Paper: {extracted}
+**Class:** {class_level} | **Marks per Question:** {marks_per_question} | **Total Questions:** {num_questions} | **Total Marks:** {marks_per_question * num_questions}
+
+---
+
+**Q1.** [question text] [{marks_per_question} Mark(s)]
+
+**Q2.** [question text] [{marks_per_question} Mark(s)]
+
+..."""
+
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3, api_key=api_key)
+    messages = [
+        SystemMessage(content="You are an expert exam question paper designer for Biotechnology. Generate ONLY questions strictly from textbook content. Never include answers, solutions, or hints. Never hallucinate."),
+        HumanMessage(content=prompt),
+    ]
+
+    for attempt in range(1, 4):
+        try:
+            response = llm.invoke(messages)
+            return {"questions": response.content.strip(), "sources": sources}
+        except Exception as e:
+            if attempt < 3:
+                _time.sleep(2 * attempt)
+            else:
+                raise RuntimeError(f"Groq LLM error: {e}")
+
+
+def generate_answer_key(questions_text: str, class_level: str,
+                        marks_per_question: int) -> dict:
+    """
+    Generates answers / answer key for provided questions using textbook RAG.
+    The questions can come from pasted text or extracted PDF content.
+    """
+    import time as _time
+
+    if is_prompt_injection(questions_text):
+        return {"answers": "⚠️ This request could not be processed.", "sources": []}
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    # ── 1. Embed the questions for retrieval ──────────────────────────────────
+    #    Use the first 500 chars of questions as the embedding query
+    embed_query = questions_text[:500]
+    try:
+        embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        query_embedding = embeddings_model.embed_query(embed_query)
+    except Exception as e:
+        raise RuntimeError(f"Embedding error: {e}")
+
+    # ── 2. Retrieve relevant textbook chunks ─────────────────────────────────
+    try:
+        supabase = get_supabase_client()
+        result = supabase.rpc("match_rag_chunks", {
+            "query_embedding": query_embedding,
+            "match_threshold": 0.2,
+            "match_count": 20,
+            "p_class_level": class_level if class_level != "general" else None,
+        }).execute()
+        chunks = result.data or []
+    except Exception as e:
+        raise RuntimeError(f"Supabase retrieval error: {e}")
+
+    if not chunks:
+        raise RuntimeError(f"No textbook content found for Class {class_level}.")
+
+    context_parts, sources = [], []
+    for doc in chunks:
+        context_parts.append(doc["content_chunk"])
+        src = f"{doc.get('chapter', 'Unknown')} ({doc.get('source_pdf', '')})"
+        if src not in sources:
+            sources.append(src)
+    context = "\n\n---\n\n".join(context_parts)
+
+    # ── 3. Marks-level depth guide ───────────────────────────────────────────
+    depth_guide = {
+        1: "1-mark: Give concise one-line answers. For MCQs, just state the correct option.",
+        2: "2-mark: Give short answers in 2-3 sentences.",
+        5: "5-mark: Give detailed paragraph answers covering all key points.",
+        10: "10-mark: Give comprehensive, multi-paragraph essay answers with definitions, explanations, examples, and diagrams description.",
+    }
+    depth = depth_guide.get(marks_per_question, depth_guide[2])
+
+    # ── 4. LLM call ──────────────────────────────────────────────────────────
+    prompt = f"""You are an expert Biotechnology teacher generating an answer key for Class {class_level} students.
+
+Using ONLY the textbook content provided below, generate accurate and complete answers ONLY for the questions listed below. Do NOT answer anything else. Do NOT generate additional questions. Do NOT add commentary, suggestions, or extra content beyond answering the provided questions.
+
+QUESTIONS TO ANSWER:
+{questions_text}
+
+TEXTBOOK CONTENT:
+{context}
+
+ANSWER DEPTH: {depth}
+
+RULES:
+1. Answer ONLY the questions provided above. Do NOT generate new questions or answer anything not explicitly asked.
+2. Answer EVERY question that is provided. Do not skip any.
+3. Use ONLY facts from the textbook content. Do NOT hallucinate or use external knowledge.
+4. If a question's answer is not found in the textbook content, write: "Answer not found in the available textbook content."
+5. Number your answers to match the question numbers exactly.
+6. For MCQs, state the correct option and give a one-line explanation.
+7. Use rich Markdown: bold key terms, use bullet points for multi-part answers.
+8. Include marks allocation next to each answer.
+9. Do NOT add any extra sections, tips, summaries, or additional information beyond the answers.
+
+OUTPUT FORMAT:
+## ✅ Answer Key
+**Class:** {class_level} | **Marks per Question:** {marks_per_question}
+
+---
+
+**Q1. Answer:** [{marks_per_question} Mark(s)]
+[detailed answer]
+
+**Q2. Answer:** [{marks_per_question} Mark(s)]
+[detailed answer]
+
+..."""
+
+    llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1, api_key=api_key)
+    messages = [
+        SystemMessage(content="You are an expert Biotechnology answer key generator. Answer ONLY the questions provided by the user — nothing more, nothing less. Answer strictly from textbook content. Never hallucinate. Never add extra content."),
+        HumanMessage(content=prompt),
+    ]
+
+    for attempt in range(1, 4):
+        try:
+            response = llm.invoke(messages)
+            return {"answers": response.content.strip(), "sources": sources}
+        except Exception as e:
+            if attempt < 3:
+                _time.sleep(2 * attempt)
+            else:
+                raise RuntimeError(f"Groq LLM error: {e}")
+
+
 def generate_ppt(topic: str, class_level: str) -> bytes:
     """
     Generates a PowerPoint (.pptx) file for a given topic using:

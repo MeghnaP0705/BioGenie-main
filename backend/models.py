@@ -52,3 +52,20 @@ class LessonPlanRequest(BaseModel):
 class LessonPlanResponse(BaseModel):
     plan: str
     sources: list[str]
+
+
+class QuestionPaperRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=500)
+    class_level: Optional[str] = Field(default="general", description="e.g. '9', '10', '11', '12', 'general'")
+    marks_per_question: Optional[int] = Field(default=2, description="1, 2, 5, or 10 marks")
+    num_questions: Optional[int] = Field(default=10, ge=1, le=50)
+
+
+class QuestionPaperResponse(BaseModel):
+    questions: str
+    sources: list[str]
+
+
+class AnswerKeyResponse(BaseModel):
+    answers: str
+    sources: list[str]
