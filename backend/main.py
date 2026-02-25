@@ -9,8 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 
-from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse, PptRequest
-from rag_engine import query_notes, summarize_notes, generate_timetable, generate_ppt
+from models import AskRequest, AskResponse, HealthResponse, SummarizeResponse, TimetableRequest, TimetableResponse, PptRequest, LessonPlanRequest, LessonPlanResponse
+from rag_engine import query_notes, summarize_notes, generate_timetable, generate_ppt, generate_lesson_plan
 
 # ─── Load environment ──────────────────────────────────────────────────────────
 load_dotenv(override=True)
@@ -157,3 +157,23 @@ async def ppt_endpoint(request: PptRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/generate-lesson-plan", response_model=LessonPlanResponse)
+async def lesson_plan_endpoint(request: LessonPlanRequest):
+    """
+    Teacher endpoint: generates a structured, time-segmented lesson plan
+    for a given topic using RAG from the indexed biotechnology textbooks.
+    """
+    if not request.topic.strip():
+        raise HTTPException(status_code=400, detail="Topic cannot be empty.")
+
+    try:
+        result = generate_lesson_plan(
+            topic=request.topic.strip(),
+            duration_minutes=request.duration_minutes or 60,
+            class_level=request.class_level or "general",
+        )
+        return LessonPlanResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lesson plan generation failed: {str(e)}")

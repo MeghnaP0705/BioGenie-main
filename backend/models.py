@@ -41,3 +41,14 @@ class TimetableResponse(BaseModel):
 class PptRequest(BaseModel):
     topic: str
     class_level: Optional[str] = "general"
+
+
+class LessonPlanRequest(BaseModel):
+    topic: str = Field(..., min_length=1, max_length=500)
+    duration_minutes: Optional[int] = Field(default=60, ge=15, le=180)
+    class_level: Optional[str] = Field(default="general", description="e.g. '9', '10', '11', '12', 'general'")
+
+
+class LessonPlanResponse(BaseModel):
+    plan: str
+    sources: list[str]

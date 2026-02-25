@@ -297,6 +297,185 @@ Strict output format:
         raise RuntimeError(f"Timetable generation failed: {e}")
 
 
+def generate_lesson_plan(topic: str, duration_minutes: int, class_level: str) -> dict:
+    """
+    Generates a structured, time-segmented lesson plan for a teacher using:
+    1. Supabase RAG to retrieve relevant textbook content for the topic
+    2. Groq LLM to structure it into a proper lesson plan with time allocations
+    Returns { plan (markdown string), sources (list of source references) }.
+    """
+    import time as _time
+
+    # ── Prompt injection guard ──────────────────────────────────────────────
+    if is_prompt_injection(topic):
+        return {
+            "plan": "⚠️ This request could not be processed.",
+            "sources": [],
+        }
+
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY is missing from environment")
+
+    # ── 1. Extract core topic from user's natural language prompt ─────────────
+    #    Users may type "Generate lesson plan for tissues for 1hr class" —
+    #    we need just "Tissues" for effective vector search.
+    llm_extract = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.0,
+        api_key=api_key,
+    )
+    try:
+        extract_resp = llm_extract.invoke([
+            SystemMessage(content=(
+                "You are a keyword extractor. The user will provide a request for a lesson plan. "
+                "Extract ONLY the core biotechnology topic name from their request. "
+                "Return ONLY the topic name, nothing else. No explanation, no quotes, no punctuation. "
+                "Examples:\n"
+                "  Input: 'Generate lesson plan for tissues for 1hr' → Output: Tissues\n"
+                "  Input: 'Lesson plan for DNA Replication' → Output: DNA Replication\n"
+                "  Input: 'PCR' → Output: PCR\n"
+                "  Input: 'teach genetic engineering in 45 min' → Output: Genetic Engineering\n"
+            )),
+            HumanMessage(content=topic),
+        ])
+        extracted_topic = extract_resp.content.strip()
+        # Fallback: if extraction returns empty or too long, use original
+        if not extracted_topic or len(extracted_topic) > 100:
+            extracted_topic = topic
+    except Exception:
+        extracted_topic = topic  # Fallback to original on any error
+
+    # ── 2. Embed the extracted topic for better retrieval ─────────────────────
+    try:
+        embeddings_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        query_embedding = embeddings_model.embed_query(extracted_topic)
+    except Exception as e:
+        raise RuntimeError(f"Embedding error: {e}")
+
+    # ── 3. Retrieve relevant chunks from Supabase ────────────────────────────
+    try:
+        supabase = get_supabase_client()
+        rpc_params = {
+            "query_embedding": query_embedding,
+            "match_threshold": 0.25,
+            "match_count": 15,
+            "p_class_level": class_level if class_level != "general" else None,
+        }
+        result = supabase.rpc("match_rag_chunks", rpc_params).execute()
+        chunks = result.data or []
+    except Exception as e:
+        raise RuntimeError(f"Supabase retrieval error: {e}")
+
+    if not chunks:
+        raise RuntimeError(
+            f"No textbook content found for topic '{extracted_topic}' in Class {class_level}. "
+            "Please ensure the relevant PDFs are indexed."
+        )
+
+    context_parts = []
+    sources = []
+    for doc in chunks:
+        context_parts.append(doc["content_chunk"])
+        src = f"{doc.get('chapter', 'Unknown')} ({doc.get('source_pdf', '')})"
+        if src not in sources:
+            sources.append(src)
+
+    context = "\n\n---\n\n".join(context_parts)
+
+    # ── 3. Build teacher-specific lesson plan prompt ─────────────────────────
+    lesson_plan_prompt = f"""You are an expert Biotechnology teacher and instructional designer for Class {class_level} students.
+
+Using ONLY the textbook content provided below, create a detailed, structured lesson plan for teaching the topic: "{extracted_topic}"
+
+Total class duration: {duration_minutes} minutes
+
+TEXTBOOK CONTENT:
+{context}
+
+RULES (follow strictly):
+1. Use ONLY the retrieved textbook content. Do NOT hallucinate or add external knowledge.
+2. Create a time-segmented lesson plan with clear time allocations that add up to exactly {duration_minutes} minutes.
+3. The lesson plan MUST include these segments (adjust time proportionally based on total duration):
+   a. **Introduction & Recap** — Quick recap of prerequisites and introduce today's topic
+   b. **Core Concept Teaching** — Main teaching segment; break the topic into sub-sections with key points to cover
+   c. **Interactive Discussion / Doubt Clearance** — Dedicated time for student questions and clarifications
+   d. **Quick Quiz / Assessment** — Short formative assessment questions to check understanding (include 3-5 sample questions with answers)
+   e. **Summary & Wrap-up** — Recap key takeaways, assign homework/reading
+4. For each segment, provide:
+   - Time allocation (e.g., "0:00 – 0:10")
+   - Segment title
+   - Detailed teaching points / activities / instructions for the teacher
+5. Include specific content from the textbook: definitions, key terms, examples, processes to explain.
+6. Include a "Learning Objectives" section at the top (3-5 objectives).
+7. Include a "Materials Needed" section.
+8. In the Quiz section, provide actual questions based on the textbook content with answers.
+9. Use rich **Markdown formatting**: headers (###), bold (**), bullet points (-), numbered lists, and tables where appropriate.
+10. Maintain a professional, teacher-oriented tone throughout.
+
+OUTPUT FORMAT:
+## 📋 Lesson Plan: <Topic Name>
+**Class:** <class level> | **Duration:** <duration> minutes | **Subject:** Biotechnology
+
+### 🎯 Learning Objectives
+<list of 3-5 objectives>
+
+### 📦 Materials Needed
+<list of materials>
+
+### ⏱️ Time-Segmented Plan
+
+#### 🔄 Introduction & Recap (0:00 – X:XX)
+<detailed instructions>
+
+#### 📖 Core Concept Teaching (X:XX – X:XX)
+<detailed teaching points with sub-sections>
+
+#### 💬 Interactive Discussion / Doubt Clearance (X:XX – X:XX)
+<discussion prompts and anticipated student questions>
+
+#### 📝 Quick Quiz / Assessment (X:XX – X:XX)
+<3-5 questions with answers>
+
+#### 🔚 Summary & Wrap-up (X:XX – X:XX)
+<key takeaways and homework>
+
+### 📌 Additional Notes for Teacher
+<any extra tips or suggestions>"""
+
+    # ── 4. Call Groq LLM ─────────────────────────────────────────────────────
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        temperature=0.3,
+        api_key=api_key,
+    )
+
+    messages = [
+        SystemMessage(content="You are an expert lesson plan designer for Biotechnology teachers. You create detailed, structured, time-segmented lesson plans using ONLY the provided textbook content. Never hallucinate."),
+        HumanMessage(content=lesson_plan_prompt),
+    ]
+
+    max_retries = 3
+    plan_text = None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = llm.invoke(messages)
+            plan_text = response.content.strip()
+            break
+        except Exception as e:
+            if attempt < max_retries:
+                _time.sleep(2 * attempt)
+                continue
+            else:
+                raise RuntimeError(f"Groq LLM error: {e}")
+
+    return {
+        "plan": plan_text,
+        "sources": sources,
+    }
+
+
 def generate_ppt(topic: str, class_level: str) -> bytes:
     """
     Generates a PowerPoint (.pptx) file for a given topic using:

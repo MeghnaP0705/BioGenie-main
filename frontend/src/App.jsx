@@ -7,6 +7,7 @@ import DoubtSolver from "./components/DoubtSolver"
 import PreviousYearPapers from "./components/PreviousYearPapers"
 import TimetableGenerator from "./components/TimetableGenerator"
 import PptMaker from "./components/PptMaker"
+import LessonPlanGenerator from "./components/LessonPlanGenerator"
 
 /* ═══════════════════════════════════════════════════════════
    APP ROOT
@@ -680,6 +681,7 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLog
   if (gem === "Previous Year Question Paper") return <PreviousYearPapers onBack={onBack} />
   if (gem === "Timetable Generator") return <TimetableGenerator onBack={onBack} />
   if (gem === "PPT Maker") return <PptMaker onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
+  if (gem === "Lesson Plan Generator") return <LessonPlanGenerator onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
 
   // Coming Soon
   return (
