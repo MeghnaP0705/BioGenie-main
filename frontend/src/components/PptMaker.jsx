@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import ChatHistorySidebar, { saveSession, loadSession } from "./ChatHistorySidebar"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 const CLASS_LEVELS = ["9", "10", "11", "12"]
 const SLIDE_COUNT_OPTIONS = [6, 8, 10, 12, 15]
 
@@ -29,20 +29,20 @@ function GeneratingSteps({ step }) {
                 <div key={i} className="flex items-center gap-1.5">
                     <span
                         className={`text-sm transition-all duration-500 ${i < step
-                                ? "opacity-100 scale-110"
-                                : i === step
-                                    ? "opacity-80 animate-pulse"
-                                    : "opacity-25"
+                            ? "opacity-100 scale-110"
+                            : i === step
+                                ? "opacity-80 animate-pulse"
+                                : "opacity-25"
                             }`}
                     >
                         {s.icon}
                     </span>
                     <span
                         className={`text-xs font-medium transition-all ${i < step
-                                ? "text-emerald-400"
-                                : i === step
-                                    ? "text-violet-300"
-                                    : "text-slate-600"
+                            ? "text-emerald-400"
+                            : i === step
+                                ? "text-violet-300"
+                                : "text-slate-600"
                             }`}
                     >
                         {s.label}
@@ -128,10 +128,32 @@ export default function PptMaker({ onBack, isAuthenticated, userId }) {
 
     // Health check
     useEffect(() => {
-        fetch(`${API_BASE}/health`)
-            .then(r => r.ok ? r.json() : null)
-            .then(d => setBackendReady(d ? true : false))
-            .catch(() => setBackendReady(false))
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        const checkHealth = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/health`)
+                if (res.ok) {
+                    setBackendReady(true)
+                } else {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(checkHealth, 1000);
+                    } else {
+                        setBackendReady(false)
+                    }
+                }
+            } catch {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(checkHealth, 1000);
+                } else {
+                    setBackendReady(false)
+                }
+            }
+        }
+        checkHealth()
     }, [])
 
     // Scroll to bottom
@@ -392,8 +414,8 @@ export default function PptMaker({ onBack, isAuthenticated, userId }) {
                                             onClick={() => setClassLevel(l)}
                                             disabled={loading}
                                             className={`px-3 py-2 rounded-lg text-xs font-semibold border transition ${classLevel === l
-                                                    ? "bg-violet-600 text-white border-violet-500 shadow-sm shadow-violet-500/20"
-                                                    : "bg-white/5 border-violet-500/15 text-slate-400 hover:bg-violet-500/10 hover:text-violet-300"
+                                                ? "bg-violet-600 text-white border-violet-500 shadow-sm shadow-violet-500/20"
+                                                : "bg-white/5 border-violet-500/15 text-slate-400 hover:bg-violet-500/10 hover:text-violet-300"
                                                 }`}
                                         >
                                             {l}

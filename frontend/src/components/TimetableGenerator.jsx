@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 
 const CLASS_LEVELS = ["9", "10", "11", "12"]
 const DAILY_HOURS_OPTIONS = [1, 2, 3, 4, 5, 6]

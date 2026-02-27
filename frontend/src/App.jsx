@@ -254,14 +254,7 @@ function LandingPage({ onStart, goLogin, goSignup, isAuthenticated, userName, on
         </div>
 
         {/* Floating stats */}
-        <div className="flex gap-8 mt-16 anim-fadeUp-4 flex-wrap justify-center">
-          {[["12+", "Subjects Covered"], ["6", "AI Features"], ["9–12", "Classes Supported"]].map(([n, l]) => (
-            <div key={l} className="text-center">
-              <p className="text-3xl font-black text-emerald-400">{n}</p>
-              <p className="text-xs text-slate-500 mt-1">{l}</p>
-            </div>
-          ))}
-        </div>
+
       </section>
 
       {/* Divider */}
@@ -573,7 +566,6 @@ function RoleSelection({ onEnter, userName, isAuthenticated, onLogout, onBack })
 ═══════════════════════════════════════════════════════════ */
 const DASHBOARDS = {
   student: [
-    { title: "PPT Maker", icon: "📊", color: "from-violet-500/20 to-purple-700/10", tag: "AI" },
     { title: "Notes Generator", icon: "📝", color: "from-emerald-500/20 to-emerald-700/10", tag: "AI" },
     { title: "Summarizer", icon: "🔍", color: "from-cyan-500/20 to-cyan-700/10", tag: "AI" },
     { title: "Previous Year Question Paper", icon: "📄", color: "from-amber-500/20 to-amber-700/10", tag: "Resource" },

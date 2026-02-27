@@ -2,7 +2,7 @@ import { useState, useRef } from "react"
 import { marked } from 'marked'
 import ChatHistorySidebar, { saveSession, loadSession } from "./ChatHistorySidebar"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 
 function downloadNotesPDF(notes) {
     const win = window.open("", "_blank")

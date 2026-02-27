@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { marked } from 'marked'
 import ChatHistorySidebar, { saveSession, loadSession } from "./ChatHistorySidebar"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 
 const WELCOME_MSG = {
     from: "bot",
@@ -67,6 +67,9 @@ export default function NotesGenerator({ onBack, isAuthenticated, userId }) {
     const inputRef = useRef(null)
 
     useEffect(() => {
+        let retryCount = 0;
+        const maxRetries = 3;
+
         const checkHealth = async () => {
             try {
                 const res = await fetch(`${API_BASE}/health`)
@@ -74,8 +77,22 @@ export default function NotesGenerator({ onBack, isAuthenticated, userId }) {
                     const data = await res.json()
                     setBackendReady(true)
                     setIndexReady(data.index_ready)
-                } else { setBackendReady(false) }
-            } catch { setBackendReady(false) }
+                } else {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(checkHealth, 1000);
+                    } else {
+                        setBackendReady(false)
+                    }
+                }
+            } catch {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(checkHealth, 1000);
+                } else {
+                    setBackendReady(false)
+                }
+            }
         }
         checkHealth()
     }, [])

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react"
 import { marked } from 'marked'
 import ChatHistorySidebar, { saveSession, loadSession } from "./ChatHistorySidebar"
 
-const API_BASE = "http://localhost:8000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000"
 const CLASS_LEVELS = ["general", "9", "10", "11", "12"]
 const MARKS_OPTIONS = [1, 2, 5, 10]
 
@@ -38,12 +38,32 @@ export default function AnswerKeyGenerator({ onBack, isAuthenticated, userId }) 
     const fileInputRef = useRef(null)
 
     useEffect(() => {
+        let retryCount = 0;
+        const maxRetries = 3;
+
         const checkHealth = async () => {
             try {
                 const res = await fetch(`${API_BASE}/health`)
-                if (res.ok) { const data = await res.json(); setBackendReady(true); setIndexReady(data.index_ready) }
-                else setBackendReady(false)
-            } catch { setBackendReady(false) }
+                if (res.ok) {
+                    const data = await res.json()
+                    setBackendReady(true)
+                    setIndexReady(data.index_ready)
+                } else {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(checkHealth, 1000);
+                    } else {
+                        setBackendReady(false)
+                    }
+                }
+            } catch {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(checkHealth, 1000);
+                } else {
+                    setBackendReady(false)
+                }
+            }
         }
         checkHealth()
     }, [])
