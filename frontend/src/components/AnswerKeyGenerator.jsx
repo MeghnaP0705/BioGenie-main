@@ -39,7 +39,7 @@ export default function AnswerKeyGenerator({ onBack, isAuthenticated, userId }) 
 
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 60;
 
         const checkHealth = async () => {
             try {
@@ -142,7 +142,7 @@ export default function AnswerKeyGenerator({ onBack, isAuthenticated, userId }) 
 
     const statusClass = backendReady === null ? "status-badge loading" : backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"
     const dotClass = backendReady === null ? "bg-slate-400" : backendReady ? (indexReady ? "bg-emerald-400 animate-pulse" : "bg-amber-400") : "bg-red-400"
-    const statusText = backendReady === null ? "Connecting..." : backendReady ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed") : "Server Offline"
+    const statusText = backendReady === null ? "Waking up server..." : backendReady ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed") : "Server Offline"
 
     const marksLabel = { 1: "1 Mark (Brief)", 2: "2 Marks (Short)", 5: "5 Marks (Detailed)", 10: "10 Marks (Essay)" }
 

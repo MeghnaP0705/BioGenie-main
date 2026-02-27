@@ -129,7 +129,7 @@ export default function PptMaker({ onBack, isAuthenticated, userId }) {
     // Health check
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 60;
 
         const checkHealth = async () => {
             try {
@@ -281,7 +281,7 @@ export default function PptMaker({ onBack, isAuthenticated, userId }) {
     }
 
     const statusDot = backendReady === null ? "bg-slate-400" : backendReady ? "bg-emerald-400 animate-pulse" : "bg-red-400"
-    const statusText = backendReady === null ? "Connecting…" : backendReady ? "Backend Ready" : "Server Offline"
+    const statusText = backendReady === null ? "Waking up server..." : backendReady ? "Backend Ready" : "Server Offline"
 
     return (
         <div className="page-dark flex flex-col" style={{ height: "100vh" }}>

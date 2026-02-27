@@ -29,12 +29,40 @@ function TypingIndicator() {
 
 export default function Summarizer({ onBack, isAuthenticated, userId }) {
     const [inputText, setInputText] = useState("")
-    const [selectedFile, setSelectedFile] = useState(null)
-    const [loading, setLoading] = useState(false)
-    const [summary, setSummary] = useState(null)
-    const [errorMsg, setErrorMsg] = useState(null)
-    const [sessionId, setSessionId] = useState(null)
+    const [backendReady, setBackendReady] = useState(null)
+    const [indexReady, setIndexReady] = useState(false)
     const fileInputRef = useRef(null)
+
+    useEffect(() => {
+        let retryCount = 0;
+        const maxRetries = 60;
+
+        const checkHealth = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/health`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setBackendReady(true)
+                    setIndexReady(data.index_ready)
+                } else {
+                    if (retryCount < maxRetries) {
+                        retryCount++;
+                        setTimeout(checkHealth, 1000);
+                    } else {
+                        setBackendReady(false)
+                    }
+                }
+            } catch {
+                if (retryCount < maxRetries) {
+                    retryCount++;
+                    setTimeout(checkHealth, 1000);
+                } else {
+                    setBackendReady(false)
+                }
+            }
+        }
+        checkHealth()
+    }, [])
 
     const handleFileSelect = (e) => {
         const file = e.target.files[0]
@@ -107,6 +135,10 @@ export default function Summarizer({ onBack, isAuthenticated, userId }) {
                         <h1 className="text-xl font-bold text-slate-100">Verified Summarizer</h1>
                         <p className="text-xs text-slate-500">Paste notes or upload a PDF. Output checked strictly against Class 9-12 Syllabus.</p>
                     </div>
+                </div>
+                <div className={backendReady === null ? "status-badge loading" : backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${backendReady === null ? "bg-slate-400" : backendReady ? (indexReady ? "bg-emerald-400 animate-pulse" : "bg-amber-400") : "bg-red-400"}`} />
+                    {backendReady === null ? "Waking up server..." : backendReady ? (indexReady ? "Knowledge Base Ready" : "No Notes Indexed") : "Server Offline"}
                 </div>
             </header>
 

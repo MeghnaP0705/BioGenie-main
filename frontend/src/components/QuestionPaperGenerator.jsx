@@ -39,7 +39,7 @@ export default function QuestionPaperGenerator({ onBack, isAuthenticated, userId
 
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 60;
 
         const checkHealth = async () => {
             try {
@@ -130,7 +130,7 @@ export default function QuestionPaperGenerator({ onBack, isAuthenticated, userId
 
     const statusClass = backendReady === null ? "status-badge loading" : backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"
     const dotClass = backendReady === null ? "bg-slate-400" : backendReady ? (indexReady ? "bg-lime-400 animate-pulse" : "bg-amber-400") : "bg-red-400"
-    const statusText = backendReady === null ? "Connecting..." : backendReady ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed") : "Server Offline"
+    const statusText = backendReady === null ? "Waking up server..." : backendReady ? (indexReady ? "Textbook Index Ready" : "No Textbook Indexed") : "Server Offline"
 
     const marksLabel = { 1: "1 Mark (MCQ)", 2: "2 Marks (Short)", 5: "5 Marks (Descriptive)", 10: "10 Marks (Essay)" }
 

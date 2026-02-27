@@ -14,19 +14,18 @@ BioGenie is an advanced AI-powered dashboard for Biotechnology education, featur
 - **Database:** Supabase (PGVector for RAG)
 - **AI Engine:** LangChain + Groq (LLaMA 3.3 70B)
 
-## 📦 Setup & Hosting
+## 🚀 Ready to Host?
+I have added two **"Deploy"** buttons to your GitHub README. 
 
-### Backend (Render/Railway)
-1. Set **Build Command:** `pip install -r backend/requirements.txt`
-2. Set **Start Command:** `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-3. Environment Variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `GROQ_API_KEY`
+![Deployment Progress](/C:/Users/pmegh/.gemini/antigravity/brain/2902310d-0969-4e3d-8a76-e013a45426ef/check_deployment_platforms_1772167673281.webp)
 
-### Frontend (Vercel/Netlify)
-1. Set **Root Directory:** `frontend`
-2. Set **Build Command:** `npm run build`
+1. **Backend:** Click **"Deploy to Render"**.
+   - If prompted to verify email, do so, then click the button again.
+   - Enter your `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GROQ_API_KEY` in the fields provided.
+   - Click **"Apply"**.
+2. **Frontend:** Once Render finishes deploying, click **"Deploy to Vercel"**.
+   - Enter your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+   - For `VITE_API_BASE`, enter the "Onrender.com" URL of your newly deployed backend.
 3. Environment Variables:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`

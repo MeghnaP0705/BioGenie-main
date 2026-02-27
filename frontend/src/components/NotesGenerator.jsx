@@ -68,7 +68,7 @@ export default function NotesGenerator({ onBack, isAuthenticated, userId }) {
 
     useEffect(() => {
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 60;
 
         const checkHealth = async () => {
             try {
@@ -182,7 +182,7 @@ export default function NotesGenerator({ onBack, isAuthenticated, userId }) {
         backendReady ? (indexReady ? "status-badge online" : "status-badge warning") : "status-badge offline"
     const dotClass = backendReady === null ? "bg-slate-400" :
         backendReady ? (indexReady ? "bg-emerald-400 animate-pulse" : "bg-amber-400") : "bg-red-400"
-    const statusText = backendReady === null ? "Connecting..." :
+    const statusText = backendReady === null ? "Waking up server..." :
         backendReady ? (indexReady ? "Knowledge Base Ready" : "No Notes Indexed") : "Server Offline"
 
     return (
