@@ -15,12 +15,21 @@ import AnswerKeyGenerator from "./components/AnswerKeyGenerator"
    APP ROOT
 ═══════════════════════════════════════════════════════════ */
 function App() {
-  const [page, setPage] = useState("landing")
-  const [role, setRole] = useState(null)
-  const [userName, setUserName] = useState("")
-  const [userId, setUserId] = useState(null)
-  const [selectedGem, setSelectedGem] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  // Lazy initialization from localStorage
+  const [page, setPage] = useState(() => localStorage.getItem("biogenie_page") || "landing")
+  const [role, setRole] = useState(() => localStorage.getItem("biogenie_role") || null)
+  const [userName, setUserName] = useState(() => localStorage.getItem("biogenie_userName") || "")
+  const [userId, setUserId] = useState(() => localStorage.getItem("biogenie_userId") || null)
+  const [selectedGem, setSelectedGem] = useState(() => localStorage.getItem("biogenie_selectedGem") || null)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem("biogenie_isAuthenticated") === "true")
+
+  // Sync state to localStorage whenever it changes
+  useEffect(() => { localStorage.setItem("biogenie_page", page) }, [page])
+  useEffect(() => { if (role) localStorage.setItem("biogenie_role", role); else localStorage.removeItem("biogenie_role") }, [role])
+  useEffect(() => { if (userName) localStorage.setItem("biogenie_userName", userName); else localStorage.removeItem("biogenie_userName") }, [userName])
+  useEffect(() => { if (userId) localStorage.setItem("biogenie_userId", userId); else localStorage.removeItem("biogenie_userId") }, [userId])
+  useEffect(() => { if (selectedGem) localStorage.setItem("biogenie_selectedGem", selectedGem); else localStorage.removeItem("biogenie_selectedGem") }, [selectedGem])
+  useEffect(() => { localStorage.setItem("biogenie_isAuthenticated", String(isAuthenticated)) }, [isAuthenticated])
 
   useEffect(() => {
     const initAuth = async () => {
@@ -35,7 +44,13 @@ function App() {
         setIsAuthenticated(true)
         setUserName(data.session.user.user_metadata?.full_name || "")
         setUserId(data.session.user.id)
-        setPage("roles")
+
+        // Only force redirect to "roles" if we are on a public/auth page
+        // Otherwise, trust the localStorage state (e.g. user refreshed on "gem")
+        setPage(prev => {
+          if (["landing", "login", "signup", "reset"].includes(prev)) return "roles"
+          return prev
+        })
       }
     }
     initAuth()
@@ -43,6 +58,7 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    localStorage.clear() // Clear all biogenie items
     setIsAuthenticated(false)
     setUserId(null)
     setUserName("")
@@ -85,6 +101,8 @@ function App() {
         onEnter={(r) => { setRole(r); setPage("dashboard") }}
         onLogout={handleLogout}
         onBack={() => setPage("landing")}
+        goLogin={() => setPage("login")}
+        goSignup={() => setPage("signup")}
       />
     )
   }
@@ -97,6 +115,8 @@ function App() {
         onLogout={handleLogout}
         onOpen={(gem) => { setSelectedGem(gem); setPage("gem") }}
         onBack={() => setPage("roles")}
+        goLogin={() => setPage("login")}
+        goSignup={() => setPage("signup")}
       />
     )
   }
@@ -110,6 +130,8 @@ function App() {
         userId={userId}
         userName={userName}
         onLogout={handleLogout}
+        goLogin={() => setPage("login")}
+        goSignup={() => setPage("signup")}
       />
     )
   }
@@ -521,13 +543,13 @@ const ROLES = [
   },
 ]
 
-function RoleSelection({ onEnter, userName, isAuthenticated, onLogout, onBack }) {
+function RoleSelection({ onEnter, userName, isAuthenticated, onLogout, onBack, goLogin, goSignup }) {
   return (
     <div className="page-bg dot-pattern min-h-screen">
       <div className="orb w-80 h-80 bg-emerald-500/8 top-[-40px] right-[-60px] anim-float-slow" />
       <div className="orb w-64 h-64 bg-cyan-500/6 bottom-20 left-[-40px] anim-float-delay" />
 
-      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} goLogin={goLogin} goSignup={goSignup} />
 
       <div className="flex flex-col items-center justify-center min-h-screen px-6 pt-20 pb-12">
         <div className="text-center mb-12 anim-fadeUp">
@@ -595,14 +617,14 @@ const ROLE_CONFIG = {
   labs: { label: "Virtual Labs", emoji: "🔬", accent: "amber" },
 }
 
-function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userName }) {
+function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userName, goLogin, goSignup }) {
   const items = DASHBOARDS[role] || []
   const cfg = ROLE_CONFIG[role] || ROLE_CONFIG.student
 
   if (role === "labs") {
     return (
       <div className="page-bg min-h-screen">
-        <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+        <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} goLogin={goLogin} goSignup={goSignup} />
         <div className="pt-24 px-6 pb-12 max-w-7xl mx-auto">
           <div className="mb-8 anim-fadeUp">
             <div className="badge-teal mb-3">🔬 Virtual Labs</div>
@@ -618,7 +640,7 @@ function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userNa
     <div className="page-bg dot-pattern min-h-screen">
       <div className="orb w-72 h-72 bg-emerald-500/8 top-[-30px] right-[-30px] anim-float-slow" />
 
-      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} goLogin={goLogin} goSignup={goSignup} />
 
       <div className="pt-28 px-6 pb-16 max-w-6xl mx-auto">
         {/* Header */}
@@ -664,7 +686,7 @@ function RoleDashboard({ role, onOpen, onBack, isAuthenticated, onLogout, userNa
 /* ═══════════════════════════════════════════════════════════
    GEM SCREEN (Feature Router)
 ═══════════════════════════════════════════════════════════ */
-function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLogout }) {
+function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLogout, goLogin, goSignup }) {
   if (gem === "Notes Generator") return <NotesGenerator onBack={onBack} role={role} isAuthenticated={isAuthenticated} userId={userId} />
   if (gem === "Summarizer") return <Summarizer onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
   if (gem === "Doubt Solver") return <DoubtSolver onBack={onBack} isAuthenticated={isAuthenticated} userId={userId} />
@@ -679,7 +701,7 @@ function GemScreen({ gem, role, onBack, isAuthenticated, userId, userName, onLog
   return (
     <div className="page-bg dot-pattern min-h-screen">
       <div className="orb w-64 h-64 bg-emerald-500/8 top-[-30px] left-[-30px] anim-float" />
-      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} />
+      <NavBar isAuthenticated={isAuthenticated} userName={userName} onLogout={onLogout} onBack={onBack} goLogin={goLogin} goSignup={goSignup} />
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center glass-dark rounded-3xl p-14 max-w-sm mx-6 border border-emerald-500/15 anim-scalePop">
           <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-4xl mx-auto mb-6 anim-float">
