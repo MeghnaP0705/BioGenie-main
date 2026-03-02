@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { marked } from 'marked'
 import ChatHistorySidebar, { saveSession, loadSession } from "./ChatHistorySidebar"
 
@@ -29,6 +29,11 @@ function TypingIndicator() {
 
 export default function Summarizer({ onBack, isAuthenticated, userId }) {
     const [inputText, setInputText] = useState("")
+    const [selectedFile, setSelectedFile] = useState(null)
+    const [errorMsg, setErrorMsg] = useState(null)
+    const [loading, setLoading] = useState(false)
+    const [summary, setSummary] = useState(null)
+    const [sessionId, setSessionId] = useState(null)
     const [backendReady, setBackendReady] = useState(null)
     const [indexReady, setIndexReady] = useState(false)
     const fileInputRef = useRef(null)
