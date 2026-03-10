@@ -126,14 +126,133 @@ function ClassPapers({ classInfo, onBack }) {
     useEffect(() => {
         const fetchPapers = async () => {
             setLoading(true)
-            const { data, error } = await supabase
-                .from("pyq_papers")
-                .select("*")
-                .eq("class_level", classInfo.level)
-                .order("year", { ascending: false })
-            if (error) setError(error.message)
-            else setPapers(data || [])
-            setLoading(false)
+            setError(null)
+            try {
+                // Try multiple folder name variations to be helpful
+                const folderVariations = [
+                    `class_${classInfo.level}`,
+                    `Class_${classInfo.level}`,
+                    `class${classInfo.level}`,
+                    `Class${classInfo.level}`,
+                    classInfo.level
+                ]
+
+                let files = []
+                let storageError = null
+
+                for (const folder of folderVariations) {
+                    const { data, error } = await supabase.storage
+                        .from("pyq-papers")
+                        .list(folder, {
+                            limit: 100,
+                            offset: 0,
+                            sortBy: { column: 'name', order: 'desc' },
+                        })
+
+                    if (data && data.length > 0) {
+                        files = data
+                        // Store which folder we actually found files in
+                        classInfo.actualFolder = folder
+                        break
+                    }
+                    if (error) storageError = error
+                }
+
+                if (!files || files.length === 0) {
+                    setPapers([])
+                    setLoading(false)
+
+                    // DIAGNOSTIC: List EVERYTHING in the root to see what's going on
+                    const { data: rootItems } = await supabase.storage.from("pyq-papers").list("", { limit: 100 });
+
+                    const foundFolders = rootItems?.filter(i => !i.id && i.name !== '.emptyFolderPlaceholder').map(i => i.name) || [];
+                    const foundFiles = rootItems?.filter(i => i.id).map(i => i.name) || [];
+
+                    let helpMsg = `No files found for Class ${classInfo.level}. \n`;
+
+                    if (foundFiles.some(f => f.toLowerCase().endsWith('.pdf'))) {
+                        helpMsg += `⚠️ We found your PDFs, but they are in the ROOT of the bucket. You MUST move them into a folder named 'class_${classInfo.level}' so the app knows they belong to this class.\n\nFiles found in root: ${foundFiles.slice(0, 5).join(", ")}${foundFiles.length > 5 ? "..." : ""}`;
+                    } else if (foundFolders.length > 0) {
+                        helpMsg += `We found these folders: ${foundFolders.join(", ")}. Please make sure your folder is named exactly 'class_${classInfo.level}'.`;
+                    } else {
+                        helpMsg += `The bucket seems completely empty. Please upload your PDFs to a folder named 'class_${classInfo.level}'.`;
+                    }
+
+                    setError(helpMsg);
+                    return
+                }
+
+                // Parse filenames to extract metadata
+                const parsedPapers = files
+                    .filter(f => f.name.toLowerCase().endsWith('.pdf'))
+                    .map(f => {
+                        const name = f.name.replace('.pdf', '')
+                        const parts = name.split('_')
+
+                        // Smart Defaults
+                        let year = "Unknown"
+                        let type = "question_paper"
+                        let set = null
+                        let title = ""
+
+                        // 1. Detect Year (any 4-digit part)
+                        const yearPart = parts.find(p => /^\d{4}$/.test(p))
+                        if (yearPart) year = yearPart
+
+                        // 2. Detect Set (starts with Set or is a small number that's not the year)
+                        let setPart = parts.find(p => p.toLowerCase().startsWith('set'))
+                        if (setPart) {
+                            set = setPart.replace(/set/i, '').trim()
+                        } else {
+                            // If no "Set" prefix, look for a 1-2 digit number that isn't the year
+                            const numPart = parts.find(p => /^\d{1,2}$/.test(p) && p !== yearPart)
+                            if (numPart) {
+                                set = numPart
+                                setPart = numPart
+                            }
+                        }
+
+                        // 3. Detect Paper Type (check for AK, Answer, or Key)
+                        const isAnswerKey = parts.some(p =>
+                            ['ak', 'answer', 'key'].includes(p.toLowerCase())
+                        )
+                        if (isAnswerKey) type = "answer_key"
+
+                        // 4. Construct Title from remaining parts
+                        const skipParts = [yearPart, setPart, `class${classInfo.level}`, `class_${classInfo.level}`]
+                        const titleParts = parts.filter(p =>
+                            p && !skipParts.includes(p.toLowerCase()) &&
+                            !['ak', 'qp', 'answer', 'key', 'paper'].includes(p.toLowerCase())
+                        )
+
+                        if (titleParts.length > 0) {
+                            title = titleParts.join(' ')
+                        } else {
+                            title = type === "question_paper" ? "Question Paper" : "Answer Key"
+                        }
+
+                        const { data: publicUrlData } = supabase.storage
+                            .from("pyq-papers")
+                            .getPublicUrl(`${classInfo.actualFolder || `class_${classInfo.level}`}/${f.name}`)
+
+                        return {
+                            id: f.id,
+                            title: set ? `${title} (Set ${set})` : title,
+                            year: year,
+                            paper_type: type,
+                            board: "CBSE",
+                            subject: "Biotechnology",
+                            file_url: publicUrlData?.publicUrl || null
+                        }
+                    })
+
+                setPapers(parsedPapers)
+            } catch (err) {
+                console.error("Error fetching papers:", err)
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
         }
         fetchPapers()
     }, [classInfo.level])
@@ -186,7 +305,18 @@ function ClassPapers({ classInfo, onBack }) {
                 {loading ? (
                     <div className="flex items-center justify-center h-40 text-slate-500">Loading papers...</div>
                 ) : error ? (
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">{error}</div>
+                    <div className="flex flex-col items-center justify-center h-60 text-center gap-4">
+                        <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm max-w-md">
+                            <p className="font-bold mb-1">⚠️ Issue Loading Papers</p>
+                            {error}
+                        </div>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="text-xs bg-slate-800 text-slate-300 px-4 py-2 rounded-lg hover:bg-slate-700 transition"
+                        >
+                            Refresh App
+                        </button>
+                    </div>
                 ) : filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 text-slate-500 gap-2">
                         <span className="text-4xl">📄</span>
